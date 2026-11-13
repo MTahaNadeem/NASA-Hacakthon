@@ -44,9 +44,22 @@ python pipeline/fetch_imerg.py                    # optional; POWER is the fallb
 python pipeline/appeears.py status                # repeat until done
 python pipeline/appeears.py download
 python pipeline/build_cache.py                    # writes app/data/*.json (synthetic: false)
-node tests/scoring.test.js && python tests/test_build_cache.py
+node tests/scoring.test.js && node tests/live.test.js && python tests/test_build_cache.py
 ```
 Missing sources become entries in each location's `gaps` list, and the dependent scoring factors are dropped, never faked.
+
+## Any location on Earth (live mode)
+
+Click the map, search a place name, or type coordinates. For points that are not cached demo locations, the
+browser fetches NASA POWER (climate) and SoilGrids (soil) live. MODIS, SMAP and IMERG need an Earthdata login
+and queued jobs, so live points drop the bare-field factor and the SMAP adjustment, and say so under each
+card's "Data gaps". Pick the rotation set (wheat-based, corn-based, tropical maize) to compare; the app suggests
+one from the climate. Crop calendars are Northern Hemisphere templates, shifted 6 months south of the equator.
+
+**Untested against the real services:** the live code was tested only with mocked responses, because the build
+sandbox had no network. If POWER or SoilGrids block browser (CORS) requests or are slow, the app shows an error and
+the cached demo locations still work. Test it once in your browser before relying on it in the demo. For the
+submission video, use a cached demo location so the demo never depends on a live call.
 
 ## Deploy
 

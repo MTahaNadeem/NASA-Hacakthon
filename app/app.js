@@ -2,7 +2,7 @@
 (function () {
   "use strict";
   var MONTHS = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
-  var state = { cfg: null, index: [], loc: null, data: null, sl: { water: .5, income: .5, soil: .5 }, rainDelta: 0, map: null, markers: {} };
+  var state = { cfgRaw: null, loadToken: 0, customMarker: null, cfg: null, index: [], loc: null, data: null, sl: { water: .5, income: .5, soil: .5 }, rainDelta: 0, map: null, markers: {} };
   var $ = function (id) { return document.getElementById(id); };
   var mean = Scoring.mean;
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
@@ -20,8 +20,9 @@
 
   function init() {
     Promise.all([getJSON("rotations.json"), getJSON("data/index.json")]).then(function (r) {
-      state.cfg = r[0]; state.index = r[1];
+      state.cfgRaw = r[0]; state.cfg = r[0]; state.index = r[1];
       buildLocationPicker();
+      bindLocationInputs();
       bindSliders();
       renderHow();
       var hero = state.index.filter(function (l) { return l.hero; })[0] || state.index[0];
@@ -46,9 +47,71 @@
     } else { $("map").textContent = "Map could not load (offline). Use the list."; $("map").style.padding = "12px"; }
   }
 
+  // Crop calendars are Northern Hemisphere templates: shift every month list by 6 for the Southern Hemisphere.
+  function effectiveCfg(lat) {
+    if (lat >= 0) return state.cfgRaw;
+    var c = JSON.parse(JSON.stringify(state.cfgRaw)), sh = function (m) { return (m - 1 + 6) % 12 + 1; };
+    Object.keys(c.crops).forEach(function (id) {
+      var k = c.crops[id]; k.sow = sh(k.sow); k.harvest = sh(k.harvest);
+      ["heat_months", "frost_months", "rain_months"].forEach(function (f) { k[f] = k[f].map(sh); });
+    });
+    return c;
+  }
+
+  function setStatus(msg, isErr) { var el = $("status"); el.textContent = msg || ""; el.className = isErr ? "hint err" : "hint"; }
+
+  function applyPreset(key) {
+    var p = state.cfgRaw.presets[key];
+    state.loc = { id: "custom", name: state.loc.name, lat: state.loc.lat, lon: state.loc.lon, hero: false, current_rotation: p.current, rotation_ids: p.ids };
+    renderAll();
+  }
+
+  function loadCustom(lat, lon, label) {
+    if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90) { setStatus("Enter a latitude between -90 and 90 and a longitude between -180 and 180.", true); return; }
+    lon = ((lon + 540) % 360) - 180;
+    var token = ++state.loadToken;
+    Array.prototype.forEach.call($("loclist").children, function (b) { b.setAttribute("aria-pressed", "false"); });
+    if (state.map) {
+      if (state.customMarker) state.customMarker.setLatLng([lat, lon]); else state.customMarker = L.marker([lat, lon]).addTo(state.map);
+      state.map.setView([lat, lon], Math.max(state.map.getZoom(), 5));
+    }
+    $("lat").value = lat.toFixed(2); $("lon").value = lon.toFixed(2);
+    setStatus("Loading...");
+    LiveData.fetchLocation(lat, lon, setStatus).then(function (d) {
+      if (token !== state.loadToken) return;
+      d.name = label || ("Custom location (" + lat.toFixed(2) + ", " + lon.toFixed(2) + ")");
+      state.data = d; state.cfg = effectiveCfg(d.lat);
+      var key = LiveData.suggestPreset(d), sel = $("preset"); sel.value = key; $("presetrow").hidden = false;
+      state.loc = { name: d.name, lat: d.lat, lon: d.lon };
+      $("banner").hidden = true; setStatus("Loaded " + d.name + ".");
+      renderProfile(); applyPreset(key);
+    }).catch(function (e) {
+      if (token !== state.loadToken) return;
+      setStatus("Could not load data for this point: " + e.message + ". The NASA POWER service may be busy or blocked on this network. Try again, or pick a demo location.", true);
+    });
+  }
+
+  function bindLocationInputs() {
+    var sel = $("preset");
+    Object.keys(state.cfgRaw.presets).forEach(function (k) { var o = document.createElement("option"); o.value = k; o.textContent = state.cfgRaw.presets[k].label; sel.appendChild(o); });
+    sel.addEventListener("change", function () { applyPreset(sel.value); });
+    $("coordform").addEventListener("submit", function (e) { e.preventDefault(); loadCustom(parseFloat($("lat").value), parseFloat($("lon").value)); });
+    $("searchform").addEventListener("submit", function (e) {
+      e.preventDefault(); var q = $("q").value.trim(); if (!q) return;
+      setStatus("Searching for " + q + "...");
+      fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(q)).then(function (r) { return r.json(); }).then(function (res) {
+        if (!res.length) { setStatus("No place found for '" + q + "'. Try a nearby town or type coordinates.", true); return; }
+        loadCustom(parseFloat(res[0].lat), parseFloat(res[0].lon), res[0].display_name.split(",").slice(0, 2).join(",").trim());
+      }).catch(function () { setStatus("Place search is unavailable. Type coordinates or click the map instead.", true); });
+    });
+    if (state.map) state.map.on("click", function (e) { loadCustom(e.latlng.lat, e.latlng.lng); });
+  }
+
   function selectLocation(id) {
     getJSON("data/" + id + ".json").then(function (d) {
-      state.data = d; state.loc = state.index.filter(function (l) { return l.id === id; })[0];
+      state.loadToken++; state.data = d; state.loc = state.index.filter(function (l) { return l.id === id; })[0];
+      state.cfg = effectiveCfg(d.lat); $("presetrow").hidden = true; setStatus("");
+      if (state.customMarker && state.map) { state.map.removeLayer(state.customMarker); state.customMarker = null; }
       Array.prototype.forEach.call($("loclist").children, function (b) { b.setAttribute("aria-pressed", b.dataset.id === id); });
       if (state.map) state.map.setView([d.lat, d.lon], 5);
       var ban = $("banner");

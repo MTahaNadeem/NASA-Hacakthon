@@ -16,8 +16,14 @@
 <div id="banner" class="banner" hidden></div>
 <main>
   <section id="s-location" aria-labelledby="h-loc">
-    <h2 id="h-loc">1. Pick a location</h2>
-    <div class="locwrap"><div id="map" aria-label="Map of demo locations"></div><div id="loclist" role="list"></div></div>
+    <h2 id="h-loc">1. Pick any location on Earth</h2>
+    <p class="hint">Click the map, search for a place, or type coordinates. Cached demo locations have all NASA sources; other points use live NASA POWER and SoilGrids data.</p>
+    <form id="searchform" class="search"><input id="q" type="search" placeholder="Search a place, e.g. Multan, Nairobi, Iowa" aria-label="Search a place"><button type="submit">Search</button></form>
+    <form id="coordform" class="search"><input id="lat" type="number" step="any" min="-90" max="90" placeholder="Latitude" aria-label="Latitude"><input id="lon" type="number" step="any" min="-180" max="180" placeholder="Longitude" aria-label="Longitude"><button type="submit">Go</button></form>
+    <div class="locwrap"><div id="map" aria-label="Map: click to choose a location"></div><div id="loclist" role="list"></div></div>
+    <p id="status" class="hint" role="status"></p>
+    <div id="presetrow" hidden><label>Rotation set to compare <select id="preset"></select></label>
+      <p class="hint">A starting suggestion from the climate. Switch it if it does not match what is grown locally. Sowing dates are templates and vary locally.</p></div>
   </section>
   <section id="s-profile" aria-labelledby="h-prof">
     <h2 id="h-prof">2. Field profile</h2>
@@ -53,6 +59,7 @@
 </footer>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="scoring.js"></script>
+<script src="live.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
