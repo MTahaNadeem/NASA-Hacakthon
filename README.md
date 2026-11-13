@@ -44,7 +44,7 @@ python pipeline/fetch_imerg.py                    # optional; POWER is the fallb
 python pipeline/appeears.py status                # repeat until done
 python pipeline/appeears.py download
 python pipeline/build_cache.py                    # writes app/data/*.json (synthetic: false)
-node tests/scoring.test.js && node tests/live.test.js && node tests/i18n.test.js && python tests/test_build_cache.py
+node tests/scoring.test.js && node tests/live.test.js && node tests/i18n.test.js && node tests/places.test.js && python tests/test_build_cache.py
 ```
 Missing sources become entries in each location's `gaps` list, and the dependent scoring factors are dropped, never faked.
 
@@ -60,6 +60,17 @@ one from the climate. Crop calendars are Northern Hemisphere templates, shifted 
 sandbox had no network. If POWER or SoilGrids block browser (CORS) requests or are slow, the app shows an error and
 the cached demo locations still work. Test it once in your browser before relying on it in the demo. For the
 submission video, use a cached demo location so the demo never depends on a live call.
+
+## Quick picks, search and "use my location"
+
+- **Quick picks** (`app/places.json`): Lahore (default), Islamabad, Rawalpindi, Ludhiana, Dhaka, Nairobi, Londrina, Toowoomba and Ames.
+  A place with a cache file in `app/data/` opens instantly with every NASA source; any other place loads live
+  (NASA POWER + SoilGrids). To cache them all, run the pipeline (it reads `pipeline/locations.json`, which lists the same places).
+  Note: AppEEARS jobs submitted earlier covered only the old points. To include the new ones, delete the entries in
+  `pipeline/raw/_appeears/tasks.json` and run `python pipeline/appeears.py submit` again.
+- **Search suggestions** use the free Open-Meteo geocoding API (no key) and return names in the chosen language.
+- **Use my location** asks the browser for permission (needs https or localhost). The position is only used to request data for that point.
+- **Map tiles** are OpenStreetMap standard tiles (no API key). CARTO's free tiles now show an "API key required" watermark.
 
 ## Languages
 

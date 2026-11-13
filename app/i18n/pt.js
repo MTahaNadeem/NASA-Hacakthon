@@ -73,5 +73,18 @@ I18N.add("pt", {
 "data.other":"Outros dados","data.other.1":"SoilGrids (ISRIC, não NASA): pH, textura e carbono orgânico com faixas de percentil 5–95",
 "data.limits":"Limites","data.limits.1":"Os resultados descrevem a área ao redor, não um único campo","data.limits.2":"As regras das culturas são práticas, não medições","data.limits.3":"Irrigação, pragas e preços não estão nos dados",
 "data.not":"Não é um substituto","data.not.d":"Esta ferramenta mostra como chegou aos resultados para que você possa discutir uma mudança com um agrônomo local. Ela não o substitui.",
-"foot.text":"Rotation Explorer · NASA Space Apps Challenge 2026. Dados: NASA POWER, MODIS, SMAP, GPM IMERG; SoilGrids (ISRIC). Ferramentas de IA (Claude) ajudaram a escrever o código; veja o README do projeto para a divulgação."
+"foot.text":"Rotation Explorer · NASA Space Apps Challenge 2026. Dados: NASA POWER, MODIS, SMAP, GPM IMERG; SoilGrids (ISRIC). Ferramentas de IA (Claude) ajudaram a escrever o código; veja o README do projeto para a divulgação.",
+"loc.picks":"Acessos rápidos",
+"loc.picks.hint":"Locais com dados da NASA em cache abrem na hora; os demais são buscados ao vivo.",
+"loc.gps":"Usar minha localização",
+"loc.gps.note":"Sua posição só é usada para pedir dados do NASA POWER e do SoilGrids para esse ponto.",
+"loc.mine":"Minha localização ({lat}, {lon})",
+"st.gps.wait":"Aguardando sua permissão para usar sua localização…",
+"st.gps.denied":"A permissão de localização foi negada. Permita nas configurações do navegador ou pesquise um lugar.",
+"st.gps.unavail":"Seu dispositivo não conseguiu determinar a localização. Pesquise um lugar.",
+"st.gps.timeout":"Encontrar sua localização demorou demais. Tente de novo ou pesquise um lugar.",
+"st.gps.insecure":"A localização exige uma página segura (https ou localhost).",
+"st.gps.nosupport":"Este navegador não oferece suporte à localização.",
+"loc.suggest.none":"Nenhum lugar correspondente",
+"loc.suggest.aria":"Sugestões de lugares"
 });

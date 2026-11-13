@@ -1,0 +1,157 @@
+[
+ {
+  "id": "lahore",
+  "lat": 31.55,
+  "lon": 74.34,
+  "hero": true,
+  "preset": "south_asia_wheat",
+  "names": {
+   "en": "Lahore, Pakistan",
+   "ur": "لاہور، پاکستان",
+   "hi": "लाहौर, पाकिस्तान",
+   "ar": "لاهور، باكستان",
+   "bn": "লাহোর, পাকিস্তান",
+   "zh": "拉合尔，巴基斯坦"
+  }
+ },
+ {
+  "id": "islamabad",
+  "lat": 33.68,
+  "lon": 73.05,
+  "hero": false,
+  "preset": "south_asia_wheat",
+  "names": {
+   "en": "Islamabad, Pakistan",
+   "ur": "اسلام آباد، پاکستان",
+   "hi": "इस्लामाबाद, पाकिस्तान",
+   "ar": "إسلام آباد، باكستان",
+   "bn": "ইসলামাবাদ, পাকিস্তান",
+   "zh": "伊斯兰堡，巴基斯坦",
+   "es": "Islamabad, Pakistán",
+   "pt": "Islamabad, Paquistão",
+   "fr": "Islamabad, Pakistan"
+  }
+ },
+ {
+  "id": "rawalpindi",
+  "lat": 33.6,
+  "lon": 73.04,
+  "hero": false,
+  "preset": "south_asia_wheat",
+  "names": {
+   "en": "Rawalpindi, Pakistan",
+   "ur": "راولپنڈی، پاکستان",
+   "hi": "रावलपिंडी, पाकिस्तान",
+   "ar": "روالبندي، باكستان",
+   "bn": "রাওয়ালপিন্ডি, পাকিস্তান",
+   "zh": "拉瓦尔品第，巴基斯坦",
+   "es": "Rawalpindi, Pakistán",
+   "pt": "Rawalpindi, Paquistão"
+  }
+ },
+ {
+  "id": "ludhiana",
+  "lat": 30.9,
+  "lon": 75.86,
+  "hero": false,
+  "preset": "south_asia_wheat",
+  "names": {
+   "en": "Ludhiana, India",
+   "ur": "لدھیانہ، بھارت",
+   "hi": "लुधियाना, भारत",
+   "ar": "لوديانا، الهند",
+   "bn": "লুধিয়ানা, ভারত",
+   "zh": "卢迪亚纳，印度",
+   "pt": "Ludhiana, Índia",
+   "fr": "Ludhiana, Inde"
+  }
+ },
+ {
+  "id": "dhaka",
+  "lat": 23.81,
+  "lon": 90.41,
+  "hero": false,
+  "preset": "tropical_maize",
+  "names": {
+   "en": "Dhaka, Bangladesh",
+   "ur": "ڈھاکہ، بنگلہ دیش",
+   "hi": "ढाका, बांग्लादेश",
+   "ar": "دكا، بنغلاديش",
+   "bn": "ঢাকা, বাংলাদেশ",
+   "zh": "达卡，孟加拉国",
+   "es": "Daca, Bangladés",
+   "pt": "Daca, Bangladesh",
+   "fr": "Dacca, Bangladesh"
+  }
+ },
+ {
+  "id": "nairobi",
+  "lat": -1.29,
+  "lon": 36.82,
+  "hero": false,
+  "preset": "tropical_maize",
+  "names": {
+   "en": "Nairobi, Kenya",
+   "ur": "نیروبی، کینیا",
+   "hi": "नैरोबी, केन्या",
+   "ar": "نيروبي، كينيا",
+   "bn": "নাইরোবি, কেনিয়া",
+   "zh": "内罗毕，肯尼亚",
+   "es": "Nairobi, Kenia",
+   "pt": "Nairóbi, Quênia"
+  }
+ },
+ {
+  "id": "londrina",
+  "lat": -23.31,
+  "lon": -51.16,
+  "hero": false,
+  "preset": "tropical_maize",
+  "names": {
+   "en": "Londrina, Brazil",
+   "ur": "لونڈرینا، برازیل",
+   "hi": "लोंड्रिना, ब्राज़ील",
+   "ar": "لوندرينا، البرازيل",
+   "bn": "লন্ড্রিনা, ব্রাজিল",
+   "zh": "隆德里纳，巴西",
+   "es": "Londrina, Brasil",
+   "pt": "Londrina, Brasil",
+   "fr": "Londrina, Brésil"
+  }
+ },
+ {
+  "id": "toowoomba",
+  "lat": -27.56,
+  "lon": 151.95,
+  "hero": false,
+  "preset": "south_asia_wheat",
+  "names": {
+   "en": "Toowoomba, Australia",
+   "ur": "ٹووومبا، آسٹریلیا",
+   "hi": "टूवूम्बा, ऑस्ट्रेलिया",
+   "ar": "توومبا، أستراليا",
+   "bn": "টুউম্বা, অস্ট্রেলিয়া",
+   "zh": "图文巴，澳大利亚",
+   "pt": "Toowoomba, Austrália",
+   "fr": "Toowoomba, Australie"
+  }
+ },
+ {
+  "id": "ames_iowa",
+  "lat": 42.03,
+  "lon": -93.62,
+  "hero": false,
+  "preset": "temperate_corn",
+  "names": {
+   "en": "Ames, Iowa, USA",
+   "ur": "ایمس، آئیووا، امریکا",
+   "hi": "एम्स, आयोवा, अमेरिका",
+   "ar": "إيمز، أيوا، الولايات المتحدة",
+   "bn": "এইমস, আইওয়া, যুক্তরাষ্ট্র",
+   "zh": "埃姆斯，爱荷华，美国",
+   "es": "Ames, Iowa, EE. UU.",
+   "pt": "Ames, Iowa, EUA",
+   "fr": "Ames, Iowa, États-Unis"
+  }
+ }
+]

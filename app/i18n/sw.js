@@ -73,5 +73,18 @@ I18N.add("sw", {
 "data.other":"Data nyingine","data.other.1":"SoilGrids (ISRIC, si NASA): pH, muundo na kaboni hai pamoja na wigo wa asilimia 5–95",
 "data.limits":"Mipaka","data.limits.1":"Matokeo yanaelezea eneo linalozunguka, si shamba moja","data.limits.2":"Kanuni za mazao ni makadirio, si vipimo","data.limits.3":"Umwagiliaji, wadudu na bei haviko kwenye data",
 "data.not":"Si mbadala","data.not.d":"Zana hii inaonyesha jinsi inavyofanya kazi ili uweze kujadili mabadiliko na mtaalamu wa kilimo wa eneo lako. Haimbadilishi.",
-"foot.text":"Rotation Explorer · NASA Space Apps Challenge 2026. Data: NASA POWER, MODIS, SMAP, GPM IMERG; SoilGrids (ISRIC). Zana za AI (Claude) zilisaidia kuandika msimbo; angalia README ya mradi kwa ufichuzi."
+"foot.text":"Rotation Explorer · NASA Space Apps Challenge 2026. Data: NASA POWER, MODIS, SMAP, GPM IMERG; SoilGrids (ISRIC). Zana za AI (Claude) zilisaidia kuandika msimbo; angalia README ya mradi kwa ufichuzi.",
+"loc.picks":"Chaguo za haraka",
+"loc.picks.hint":"Maeneo yenye data ya NASA iliyohifadhiwa hufunguka mara moja; mengine hupakuliwa moja kwa moja.",
+"loc.gps":"Tumia eneo langu",
+"loc.gps.note":"Eneo lako hutumika tu kuomba data ya NASA POWER na SoilGrids kwa nukta hiyo.",
+"loc.mine":"Eneo langu ({lat}, {lon})",
+"st.gps.wait":"Inasubiri ruhusa yako ya kutumia eneo lako…",
+"st.gps.denied":"Ruhusa ya eneo imekataliwa. Iruhusu kwenye mipangilio ya kivinjari au tafuta mahali.",
+"st.gps.unavail":"Kifaa chako hakikuweza kubaini eneo lake. Tafuta mahali badala yake.",
+"st.gps.timeout":"Kutafuta eneo lako kulichukua muda mrefu. Jaribu tena au tafuta mahali.",
+"st.gps.insecure":"Eneo linahitaji ukurasa salama (https au localhost).",
+"st.gps.nosupport":"Kivinjari hiki hakiauni eneo.",
+"loc.suggest.none":"Hakuna maeneo yanayolingana",
+"loc.suggest.aria":"Mapendekezo ya maeneo"
 });

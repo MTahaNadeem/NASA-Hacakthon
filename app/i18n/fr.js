@@ -73,5 +73,18 @@ I18N.add("fr", {
 "data.other":"Autres données","data.other.1":"SoilGrids (ISRIC, pas NASA) : pH, texture et carbone organique avec bandes de percentiles 5–95",
 "data.limits":"Limites","data.limits.1":"Les résultats décrivent la zone environnante, pas une seule parcelle","data.limits.2":"Les règles de culture sont empiriques, pas des mesures","data.limits.3":"L'irrigation, les ravageurs et les prix ne sont pas dans les données",
 "data.not":"Pas un substitut","data.not.d":"Cet outil montre son raisonnement pour que vous puissiez discuter d'un changement avec un agronome local. Il ne le remplace pas.",
-"foot.text":"Rotation Explorer · NASA Space Apps Challenge 2026. Données : NASA POWER, MODIS, SMAP, GPM IMERG ; SoilGrids (ISRIC). Des outils d'IA (Claude) ont aidé à écrire le code ; voir le README du projet pour la déclaration."
+"foot.text":"Rotation Explorer · NASA Space Apps Challenge 2026. Données : NASA POWER, MODIS, SMAP, GPM IMERG ; SoilGrids (ISRIC). Des outils d'IA (Claude) ont aidé à écrire le code ; voir le README du projet pour la déclaration.",
+"loc.picks":"Accès rapides",
+"loc.picks.hint":"Les lieux dont les données NASA sont en cache s'ouvrent instantanément ; les autres sont récupérés en direct.",
+"loc.gps":"Utiliser ma position",
+"loc.gps.note":"Votre position sert uniquement à demander les données NASA POWER et SoilGrids de ce point.",
+"loc.mine":"Ma position ({lat}, {lon})",
+"st.gps.wait":"En attente de votre autorisation d'utiliser votre position…",
+"st.gps.denied":"L'autorisation de localisation a été refusée. Autorisez-la dans les paramètres du navigateur ou cherchez un lieu.",
+"st.gps.unavail":"Votre appareil n'a pas pu déterminer sa position. Cherchez un lieu.",
+"st.gps.timeout":"La recherche de votre position a pris trop de temps. Réessayez ou cherchez un lieu.",
+"st.gps.insecure":"La localisation nécessite une page sécurisée (https ou localhost).",
+"st.gps.nosupport":"Ce navigateur ne prend pas en charge la localisation.",
+"loc.suggest.none":"Aucun lieu correspondant",
+"loc.suggest.aria":"Suggestions de lieux"
 });

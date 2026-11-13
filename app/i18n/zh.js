@@ -73,5 +73,18 @@ I18N.add("zh", {
 "data.other":"其他数据","data.other.1":"SoilGrids（ISRIC，非NASA）：pH、质地和有机碳，含第5–95百分位区间",
 "data.limits":"局限","data.limits.1":"结果描述的是周边区域，而非单块农田","data.limits.2":"作物规则是经验规则，不是实测值","data.limits.3":"灌溉、病虫害和价格不在数据中",
 "data.not":"不能替代专家","data.not.d":"本工具展示其推理过程，便于你与当地农艺师讨论是否调整。它并不能取代农艺师。",
-"foot.text":"轮作探索器 · NASA太空应用挑战赛 2026。数据：NASA POWER、MODIS、SMAP、GPM IMERG；SoilGrids（ISRIC）。AI工具（Claude）协助编写了代码；披露说明见项目README。"
+"foot.text":"轮作探索器 · NASA太空应用挑战赛 2026。数据：NASA POWER、MODIS、SMAP、GPM IMERG；SoilGrids（ISRIC）。AI工具（Claude）协助编写了代码；披露说明见项目README。",
+"loc.picks":"快速选择",
+"loc.picks.hint":"已缓存NASA数据的地点会立即打开；其他地点实时获取。",
+"loc.gps":"使用我的位置",
+"loc.gps.note":"你的位置仅用于向NASA POWER和SoilGrids请求该点的数据。",
+"loc.mine":"我的位置（{lat}，{lon}）",
+"st.gps.wait":"正在等待你授权使用位置…",
+"st.gps.denied":"位置权限被拒绝。请在浏览器设置中允许，或改为搜索地点。",
+"st.gps.unavail":"你的设备无法确定位置。请改为搜索地点。",
+"st.gps.timeout":"获取你的位置耗时过长。请重试或搜索地点。",
+"st.gps.insecure":"定位需要安全页面（https或localhost）。",
+"st.gps.nosupport":"此浏览器不支持定位。",
+"loc.suggest.none":"没有匹配的地点",
+"loc.suggest.aria":"地点建议"
 });

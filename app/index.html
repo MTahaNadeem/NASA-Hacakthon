@@ -61,9 +61,12 @@
       <aside class="side" aria-label="Controls">
         <section class="cardx">
           <h3 data-i18n="loc.title">Location</h3>
-          <form id="searchform" class="field"><input id="q" type="search" data-i18n-ph="loc.search.ph" aria-label="Search" placeholder="Search a place"><button type="submit" class="btn primary sm" data-i18n="loc.search.btn">Search</button></form>
+          <form id="searchform" class="field" autocomplete="off"><div class="sugwrap"><input id="q" type="search" role="combobox" aria-expanded="false" aria-controls="suggest" aria-autocomplete="list" autocomplete="off" data-i18n-ph="loc.search.ph" aria-label="Search" placeholder="Search a town or city"><ul id="suggest" role="listbox" data-i18n-aria="loc.suggest.aria" aria-label="Place suggestions" hidden></ul></div><button type="submit" class="btn primary sm" data-i18n="loc.search.btn">Search</button></form>
           <form id="coordform" class="field two"><input id="lat" type="number" step="any" min="-90" max="90" data-i18n-ph="loc.lat" placeholder="Latitude" aria-label="Latitude"><input id="lon" type="number" step="any" min="-180" max="180" data-i18n-ph="loc.lon" placeholder="Longitude" aria-label="Longitude"><button type="submit" class="btn sm" data-i18n="loc.go">Go</button></form>
-          <p class="mini" data-i18n="loc.demos">Demo locations (all NASA sources)</p>
+          <button type="button" id="gps" class="btn gps"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="12" cy="12" r="3.2" fill="currentColor"/><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span data-i18n="loc.gps">Use my location</span></button>
+          <p class="mini" data-i18n="loc.gps.note"></p>
+          <p class="mini strong" data-i18n="loc.picks">Quick picks</p>
+          <p class="mini nomt" data-i18n="loc.picks.hint"></p>
           <div id="loclist" role="list"></div>
           <p id="status" class="status" role="status"></p>
           <div id="presetrow" hidden>

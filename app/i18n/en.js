@@ -73,5 +73,18 @@ I18N.add("en", {
 "data.other":"Other data","data.other.1":"SoilGrids (ISRIC, not NASA): pH, texture and organic carbon with 5th–95th percentile bands",
 "data.limits":"Limits","data.limits.1":"Results describe the surrounding area, not one field","data.limits.2":"Crop rules are rules of thumb, not measurements","data.limits.3":"Irrigation, pests and prices are not in the data",
 "data.not":"Not a replacement","data.not.d":"This tool shows its working so you can discuss a change with a local agronomist. It does not replace one.",
-"foot.text":"Rotation Explorer · NASA Space Apps Challenge 2026. Data: NASA POWER, MODIS, SMAP, GPM IMERG; SoilGrids (ISRIC). AI tools (Claude) helped write the code; see the project README for the disclosure."
+"foot.text":"Rotation Explorer · NASA Space Apps Challenge 2026. Data: NASA POWER, MODIS, SMAP, GPM IMERG; SoilGrids (ISRIC). AI tools (Claude) helped write the code; see the project README for the disclosure.",
+"loc.picks":"Quick picks",
+"loc.picks.hint":"Places with cached NASA data open instantly; others are fetched live.",
+"loc.gps":"Use my location",
+"loc.gps.note":"Your position is only used to request NASA POWER and SoilGrids data for that point.",
+"loc.mine":"My location ({lat}, {lon})",
+"st.gps.wait":"Waiting for your permission to use your location…",
+"st.gps.denied":"Location permission was denied. Allow it in your browser settings, or search for a place instead.",
+"st.gps.unavail":"Your device could not work out its location. Search for a place instead.",
+"st.gps.timeout":"Finding your location took too long. Try again or search for a place.",
+"st.gps.insecure":"Location needs a secure page (https or localhost).",
+"st.gps.nosupport":"This browser does not support location.",
+"loc.suggest.none":"No matching places",
+"loc.suggest.aria":"Place suggestions"
 });
