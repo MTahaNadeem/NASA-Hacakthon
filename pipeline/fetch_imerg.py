@@ -13,7 +13,11 @@ ROOT = Path(__file__).resolve().parent
 CFG = json.loads((ROOT / "locations.json").read_text())
 
 def main():
+    import os
     import earthaccess, xarray as xr  # pip install earthaccess xarray netCDF4 h5netcdf
+    # earthaccess reads EARTHDATA_USERNAME / EARTHDATA_PASSWORD; reuse the names the other scripts use.
+    os.environ.setdefault("EARTHDATA_USERNAME", os.environ.get("EARTHDATA_USER", ""))
+    os.environ.setdefault("EARTHDATA_PASSWORD", os.environ.get("EARTHDATA_PASS", ""))
     earthaccess.login(strategy="environment")
     p = CFG["period"]
     for loc in CFG["locations"]:

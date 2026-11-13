@@ -22,7 +22,7 @@ STATE = ROOT / "raw" / "_appeears" / "tasks.json"
 PRODUCTS = {
     "modis_ndvi": {"product": "MOD13Q1.061", "layer": "_250m_16_days_NDVI", "start": "01-01-%d", "end": "12-31-%d", "y0": None},
     # SMAP L4 starts in 2015, so its record is shorter than the 20-year climate record.
-    "smap_rootzone": {"product": "SPL4SMGP.007", "layer": "Geophysical_Data_sm_rootzone", "y0": 2015},
+    "smap_rootzone": {"product": "SPL4SMGP.008", "layer": "Geophysical_Data_sm_rootzone", "y0": 2015},
 }
 
 def token():
