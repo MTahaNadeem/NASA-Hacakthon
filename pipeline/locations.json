@@ -1,0 +1,11 @@
+{
+  "period": {"start_year": 2004, "end_year": 2023},
+  "locations": [
+    {"id": "faisalabad", "name": "Faisalabad, Punjab, Pakistan", "lat": 31.42, "lon": 73.08,
+     "hero": true, "current_rotation": "wheat_fallow",
+     "rotation_ids": ["wheat_fallow", "wheat_mungbean", "wheat_chickpea", "wheat_mustard"]},
+    {"id": "ames_iowa", "name": "Ames, Iowa, USA", "lat": 42.03, "lon": -93.62,
+     "hero": false, "current_rotation": "corn_corn",
+     "rotation_ids": ["corn_corn", "corn_soy", "corn_soy_oats"]}
+  ]
+}

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rotation Explorer</title>
+<meta name="description" content="Compare crop rotations for a field location using NASA data, with the evidence, uncertainty and data gaps shown.">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>Rotation Explorer</h1>
+  <p class="tag">Compare crop rotations with the evidence, the uncertainty and the gaps shown.</p>
+</header>
+<div id="banner" class="banner" hidden></div>
+<main>
+  <section id="s-location" aria-labelledby="h-loc">
+    <h2 id="h-loc">1. Pick a location</h2>
+    <div class="locwrap"><div id="map" aria-label="Map of demo locations"></div><div id="loclist" role="list"></div></div>
+  </section>
+  <section id="s-profile" aria-labelledby="h-prof">
+    <h2 id="h-prof">2. Field profile</h2>
+    <div id="profile"></div>
+  </section>
+  <section id="s-calendar" aria-labelledby="h-cal">
+    <h2 id="h-cal">3. Vulnerability windows</h2>
+    <div id="calendar"></div>
+  </section>
+  <section id="s-compare" aria-labelledby="h-cmp">
+    <h2 id="h-cmp">4. Compare rotations</h2>
+    <div class="sliders" id="sliders">
+      <label>Water saving <output id="o-water"></output><input type="range" id="sl-water" min="0" max="100" value="50"></label>
+      <label>Income (yield risk) <output id="o-income"></output><input type="range" id="sl-income" min="0" max="100" value="50"></label>
+      <label>Soil building <output id="o-soil"></output><input type="range" id="sl-soil" min="0" max="100" value="50"></label>
+    </div>
+    <p class="hint">Scores are 0-1 (higher is better). Each bar shows the range across about 20 years and soil uncertainty, not one number. Overlapping bars mean there is no clear winner.</p>
+    <div id="cards"></div>
+  </section>
+  <section id="s-scenario" aria-labelledby="h-sc">
+    <h2 id="h-sc">5. What if it gets drier?</h2>
+    <label class="sc">Rainfall change <output id="o-rain"></output><input type="range" id="sl-rain" min="-40" max="20" value="0" step="5"></label>
+    <p id="flip" class="hint"></p>
+    <p class="hint">Only rainfall is changed here. Temperature scenarios are not modelled because the cache holds monthly heat-day counts, not daily temperatures.</p>
+  </section>
+  <section id="s-how" aria-labelledby="h-how">
+    <h2 id="h-how">How was this scored?</h2>
+    <div id="how"></div>
+  </section>
+</main>
+<footer>
+  <p>Data: NASA POWER, NASA MODIS (MOD13Q1), NASA SMAP L4 (SPL4SMGP), NASA GPM IMERG; soil from SoilGrids (ISRIC, not NASA). Results describe the surrounding area, not one field. This tool does not replace a local agronomist.</p>
+</footer>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="scoring.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
