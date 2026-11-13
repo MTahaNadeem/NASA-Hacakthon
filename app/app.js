@@ -4,11 +4,12 @@
   "use strict";
   var t = I18N.t;
   var SRC = ["power", "soilgrids", "modis", "smap", "imerg"], SRC_NAME = { power: "NASA POWER", soilgrids: "SoilGrids", modis: "MODIS", smap: "SMAP", imerg: "GPM IMERG" };
-  var TABS = ["rot", "profile", "cal", "rules", "cmp"];
+  var TABS = ["profile", "cal", "whatif", "rules", "cmp"];
   var state = { cfgRaw: null, cfgBase: null, cfg: null, index: [], places: [], loc: null, data: null, presetKey: null,
     sl: { water: .5, income: .5, soil: .5 }, rainDelta: 0, tempDelta: 0, irr: "u", overrides: {},
     map: null, markers: {}, customMarker: null, pin: null, loading: false, loadToken: 0, tab: "rot", status: null,
     cmp: null, cmpToken: 0, printOpen: [], urlTimer: null };
+  state.tab = "profile";
   var $ = function (id) { return document.getElementById(id); };
   var mean = Scoring.mean;
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
@@ -109,7 +110,7 @@
   }
   function syncControls() {
     ["water", "income", "soil"].forEach(function (k) { $("sl-" + k).value = Math.round(state.sl[k] * 100); $("o-" + k).textContent = Math.round(state.sl[k] * 100) + "%"; });
-    $("irr").value = state.irr; $("sl-rain").value = state.rainDelta; $("sl-temp").value = state.tempDelta;
+    Array.prototype.forEach.call(document.querySelectorAll("input[name=irr]"), function (r) { r.checked = r.value === state.irr; }); $("sl-rain").value = state.rainDelta; $("sl-temp").value = state.tempDelta;
     $("o-rain").textContent = (state.rainDelta > 0 ? "+" : "") + state.rainDelta + "%"; $("o-temp").textContent = "+" + state.tempDelta + " °C";
     $("sl-water").disabled = state.irr === "n"; $("sl-water").parentNode.classList.toggle("off", state.irr === "n");
   }
@@ -154,8 +155,8 @@
 
   /* ---------- decorative hero art (no data) ---------- */
   function buildArt() {
-    var cols = ["#2f7d52", "#3f9b69", "#e3a53b", "#1f5a3b", "#7fc28f", "#b98a2e"], h = "", i;
-    for (i = 0; i < 40; i++) h += "<i style='background:" + cols[(i * 7 + Math.floor(i / 8) * 3) % cols.length] + ";animation-delay:" + ((i % 8) * 0.35) + "s;opacity:" + (0.55 + ((i * 13) % 5) / 12) + "'></i>";
+    var cols = ["#bfe3c9", "#8fcca3", "#f1d58a", "#6fb88a", "#d9eedf", "#e8c46a"], h = "", i;
+    for (i = 0; i < 36; i++) h += "<i style='background:" + cols[(i * 7 + Math.floor(i / 6) * 3) % cols.length] + ";opacity:" + (0.65 + ((i * 13) % 5) / 14) + "'></i>";
     $("art").innerHTML = h;
   }
 
@@ -362,11 +363,11 @@
     $("coordform").addEventListener("submit", function (e) { e.preventDefault(); loadCustom(parseFloat($("lat").value), parseFloat($("lon").value)); });
     bindSearch(); bindGps();
     $("analyse").addEventListener("click", function () { if (state.pin) loadCustom(state.pin.lat, state.pin.lon, { fromMap: true }); });
-    $("viewres").addEventListener("click", function () { document.querySelector(".results").scrollIntoView({ behavior: "smooth", block: "start" }); });
+    $("viewres").addEventListener("click", function () { $("step3").scrollIntoView({ behavior: "smooth", block: "start" }); });
     ["water", "income", "soil"].forEach(function (k) {
       $("sl-" + k).addEventListener("input", function (e) { state.sl[k] = e.target.value / 100; $("o-" + k).textContent = e.target.value + "%"; renderAll(); });
     });
-    $("irr").addEventListener("change", function () { state.irr = $("irr").value; syncControls(); renderHow(); renderAll(); });
+    Array.prototype.forEach.call(document.querySelectorAll("input[name=irr]"), function (r) { r.addEventListener("change", function () { if (r.checked) { state.irr = r.value; syncControls(); renderHow(); renderAll(); } }); });
     $("sl-rain").addEventListener("input", function (e) { state.rainDelta = +e.target.value; $("o-rain").textContent = (state.rainDelta > 0 ? "+" : "") + state.rainDelta + "%"; renderAll(); });
     $("sl-temp").addEventListener("input", function (e) { state.tempDelta = +e.target.value; $("o-temp").textContent = "+" + state.tempDelta + " °C"; renderAll(); });
     $("cmpsel").addEventListener("change", function () { loadCompare($("cmpsel").value); });
@@ -415,7 +416,7 @@
       $("printhead").innerHTML = "<h1>" + esc(t("print.title")) + "</h1><p><b><bdi>" + esc(locName()) + "</bdi></b> · <bdi dir='ltr'>" + (state.loc ? state.loc.lat.toFixed(2) + ", " + state.loc.lon.toFixed(2) : "") + "</bdi></p><p>" +
         esc(t("print.date", { date: date })) + " · " + esc(t("print.link")) + ": <bdi dir='ltr'>" + esc(location.href) + "</bdi></p><p class='disc'>" + esc(t("print.disclaimer")) + "</p>";
       writeUrl(true); $("p-cmp").classList.toggle("has-cmp", !!(state.cmp && state.cmp.data));
-      state.printOpen = []; Array.prototype.forEach.call(document.querySelectorAll(".results details"), function (el) { state.printOpen.push([el, el.open]); el.open = true; });
+      state.printOpen = []; Array.prototype.forEach.call(document.querySelectorAll("#step3 details"), function (el) { state.printOpen.push([el, el.open]); el.open = true; });
     });
     window.addEventListener("afterprint", function () { state.printOpen.forEach(function (p) { p[0].open = p[1]; }); state.printOpen = []; });
   }
@@ -544,44 +545,65 @@
   function li(a, cls) { return a.map(function (x) { return "<li" + (cls ? " class='" + cls + "'" : "") + ">" + esc(x) + "</li>"; }).join(""); }
   function confPill(c) { return "<span class='pill conf conf-" + c.level + "'>" + esc(t("conf.badge", { level: t("conf." + c.level) })) + "</span>"; }
 
+  // ---- plain-language layer: turn the six factor scores into short sentences a farmer can read ----
+  function plain(fb) {
+    var pos = [], neg = [];
+    Scoring.FACTORS.forEach(function (f) { var v = fb[f.id]; if (v == null) return; if (v >= .7) pos.push([f.id, v]); else if (v <= .5) neg.push([f.id, v]); });
+    pos.sort(function (a, b) { return b[1] - a[1]; }); neg.sort(function (a, b) { return a[1] - b[1]; });
+    return { pos: pos.slice(0, 3).map(function (p) { return t("p." + p[0] + ".pos"); }),
+             neg: neg.slice(0, 3).map(function (p) { return t(p[0] === "water" && state.irr === "n" ? "p.water.neg.rain" : "p." + p[0] + ".neg"); }) };
+  }
+  function fitInfo(r, top) { var g = top.mean - r.mean; return r.rank === 1 ? ["best", "fit.best"] : g < .04 ? ["close", "fit.close"] : g < .12 ? ["good", "fit.good"] : ["weak", "fit.weak"]; }
+  function fitRow(r) {
+    var n = Math.round(r.mean * 100), txt = esc(t("fit.label", { n: n }));
+    return "<div class='fitrow'><div class='fitbar' role='img' aria-label='" + txt + "'><i style='width:" + n + "%'></i></div><b>" + txt + "</b></div>";
+  }
+  function whyBlock(p) {
+    if (!p.pos.length && !p.neg.length) return "";
+    return "<div class='why2'>" + (p.pos.length ? "<div class='plus'><h4>" + esc(t("why.plus")) + "</h4><ul>" + li(p.pos) + "</ul></div>" : "") +
+      (p.neg.length ? "<div class='minus'><h4>" + esc(t("why.minus")) + "</h4><ul>" + li(p.neg) + "</ul></div>" : "") + "</div>";
+  }
+
   function renderSummary(out, d) {
     var cfg = state.cfg, top = out.results[0], cur = out.results.filter(function (r) { return r.id === state.loc.current_rotation; })[0];
     var conf = Scoring.confidence(top, d), rot = cfg.rotations[top.id], fb = Scoring.factorBreakdown(rot, cfg, d), ins = insights(rot, top, d, fb);
-    var line = (cur && top.id === cur.id) ? t("sum.vs.cur") : (cur ? t("sum.vs.up", { d: f2(top.mean - cur.mean), cur: rotLabel(cur.id) }) : "");
+    var line = (cur && top.id === cur.id) ? t("sum.vs.cur") : (cur ? t("sum.vs.up", { d: Math.max(1, Math.round(100 * (top.mean - cur.mean))), cur: rotLabel(cur.id) }) : "");
     var nb = top.noClearWinner ? out.results.filter(function (r) { return r.id !== top.id && r.noClearWinner; })[0] : null;
     var ask = ins.flags.filter(function (f) { return f !== t("flag.synth"); }).slice(0, 3);
     $("summary").innerHTML = "<div class='summary'><p class='kick'>" + esc(t("sum.best")) + "</p><div class='sumtop'><h3><bdi>" + esc(rotLabel(top.id)) + "</bdi></h3>" + confPill(conf) + "</div>" +
-      "<p>" + esc(line) + "</p>" + (nb ? "<p class='flag'>" + esc(t("sum.close", { a: rotLabel(top.id), b: rotLabel(nb.id) })) + "</p>" : "") +
+      fitRow(top) + "<p>" + esc(line) + "</p>" + (nb ? "<p class='flag'>" + esc(t("sum.close", { a: rotLabel(top.id), b: rotLabel(nb.id) })) + "</p>" : "") +
+      whyBlock(plain(fb)) +
       "<p class='why'><b>" + esc(t("sum.why")) + ":</b> " + esc((conf.reasons.length ? conf.reasons.map(function (k) { return t(k); }).join("; ") : t("conf.r.none"))) + "</p>" +
-      "<p><b>" + esc(t("sum.ask")) + ":</b></p><ul>" + li(ask) + "</ul></div>";
+      "<div class='ask'><h4>" + esc(t("sum.ask")) + "</h4><ul>" + li(ask) + "</ul></div></div>";
   }
 
   function renderAll() {
     if (!state.data || !state.loc) return;
     renderHead(); renderCalendar();
-    var d = scen(state.data), cfg = state.cfg, out = rank(cfg, d, state.loc.rotation_ids), h = "";
+    var d = scen(state.data), cfg = state.cfg, out = rank(cfg, d, state.loc.rotation_ids), h = "", top = out.results[0];
     var gaps = (d.gaps || []).map(gapText);
     if (!(d.soil && d.soil.ph) && !(d.gaps || []).some(function (g) { return /^SoilGrids/.test(g); })) gaps.push(t("gap.soilmissing"));
     gaps = gaps.concat([t("gap.static1"), t("gap.static2")]);
     renderSummary(out, d);
     out.results.forEach(function (r) {
-      var rot = cfg.rotations[r.id], fb = Scoring.factorBreakdown(rot, cfg, d), x = insights(rot, r, d, fb), isCur = r.id === state.loc.current_rotation;
+      var rot = cfg.rotations[r.id], fb = Scoring.factorBreakdown(rot, cfg, d), x = insights(rot, r, d, fb), isCur = r.id === state.loc.current_rotation, fi = fitInfo(r, top);
       var gap = Math.round(Scoring.irrigationNeed(rot, cfg, d) / 10) * 10;
       h += "<article class='card" + (r.rank === 1 ? " top" : "") + "'><div class='head'><span class='rank'>" + r.rank + "</span><div><h3><bdi>" + esc(rotLabel(r.id)) + "</bdi></h3><div class='pills'>" +
-        (isCur ? "<span class='pill cur'>" + esc(t("card.current")) + "</span>" : "") + (r.rank === 1 ? "<span class='pill cur'>" + esc(t("card.top")) + "</span>" : "") +
-        (r.noClearWinner ? "<span class='pill tie'>" + esc(t("card.tie")) + "</span>" : "") + confPill(Scoring.confidence(r, d)) + "</div></div>" +
-        "<div class='score'><b>" + f2(r.mean) + "</b><span>" + esc(t("card.score")) + "</span></div></div>" +
+        "<span class='pill " + (fi[0] === "best" ? "best" : "") + "'>" + esc(t(fi[1])) + "</span>" + (isCur ? "<span class='pill cur'>" + esc(t("card.current")) + "</span>" : "") +
+        (r.noClearWinner ? "<span class='pill tie'>" + esc(t("card.tie")) + "</span>" : "") + confPill(Scoring.confidence(r, d)) + "</div></div></div>" +
+        fitRow(r) + whyBlock(plain(fb)) +
+        "<details><summary>" + esc(t("card.more")) + "</summary>" +
         "<div class='bar' role='img' aria-label='" + f2(r.low) + " – " + f2(r.high) + "'><div class='rng' style='left:" + r.low * 100 + "%;width:" + Math.max(1, (r.high - r.low) * 100) + "%'></div><div class='tick' style='left:" + r.mean * 100 + "%'></div></div>" +
         "<div class='axis'><span>0</span><span dir='auto'>" + esc(t("card.range", { lo: f2(r.low), hi: f2(r.high) })) + "</span><span>1</span></div>" +
         "<p class='mini irr'>" + esc(t("card.irr", { mm: gap })) + "</p>" +
-        "<details><summary>" + esc(t("card.ev")) + "</summary><p class='mini'>" + esc(t("card.ev.hint")) + "</p><div class='ev'>" +
+        "<h4 class='sh'>" + esc(t("card.ev")) + "</h4><p class='mini'>" + esc(t("card.ev.hint")) + "</p><div class='ev'>" +
         Scoring.FACTORS.map(function (f) {
           var v = fb[f.id];
           return "<div class='evrow" + (v == null ? " na" : "") + "'><div>" + esc(t("f." + f.id + ".label")) + "<small>" + esc(t("f." + f.id + ".data")) + "</small></div><div class='evbar'><i style='width:" + (v == null ? 0 : v * 100) + "%'></i></div><b>" + f2(v) + "</b></div>";
-        }).join("") + "</div></details>" +
-        "<details><summary>" + esc(t("card.br")) + "</summary><ul>" + li(x.benefits) + x.risks.map(function (z) { return "<li class='flag'>" + esc(t("card.risk", { t: z })) + "</li>"; }).join("") + "</ul></details>" +
-        "<details><summary>" + esc(t("card.gaps")) + "</summary><ul>" + li(gaps) + "</ul></details>" +
-        "<details open><summary class='flag'>" + esc(t("card.agro")) + "</summary><ul>" + li(x.flags) + "</ul></details></article>";
+        }).join("") + "</div>" +
+        "<h4 class='sh'>" + esc(t("card.br")) + "</h4><ul>" + li(x.benefits) + x.risks.map(function (z) { return "<li class='flag'>" + esc(t("card.risk", { t: z })) + "</li>"; }).join("") + "</ul>" +
+        "<h4 class='sh'>" + esc(t("card.gaps")) + "</h4><ul>" + li(gaps) + "</ul>" +
+        "<h4 class='sh flag'>" + esc(t("card.agro")) + "</h4><ul>" + li(x.flags) + "</ul></details></article>";
     });
     $("cards").innerHTML = h;
     renderFlip(); renderCompare(); markScrollers(); writeUrl();
@@ -659,7 +681,7 @@
   }
   function cmpColumn(name, d, cfg, ids, current) {
     var dd = scen(d), out = rank(cfg, dd, ids), top = out.results[0], conf = Scoring.confidence(top, dd), ps = profileStats(d);
-    return "<div class='cmpcol'><h4><bdi>" + esc(name) + "</bdi></h4><p class='mini'>" + esc(t("cmp.rain")) + ": " + Math.round(ps.rain) + " mm · " + esc(t("cmp.heat")) + ": " + ps.heat.toFixed(0) + "</p>" +
+    return "<div class='cmpcol'><h3><bdi>" + esc(name) + "</bdi></h3><p class='mini'>" + esc(t("cmp.rain")) + ": " + Math.round(ps.rain) + " mm · " + esc(t("cmp.heat")) + ": " + ps.heat.toFixed(0) + "</p>" +
       "<span class='mini'>" + esc(t("cmp.top")) + "</span><span class='big'><bdi>" + esc(rotLabel(top.id)) + "</bdi></span><div class='pills'><span class='pill cur'>" + f2(top.mean) + "</span>" + confPill(conf) + "</div>" +
       "<ul class='cmplist'>" + out.results.map(function (r) {
         return "<li><span><bdi>" + esc(rotLabel(r.id)) + "</bdi>" + (r.id === current ? " <span class='mini'>(" + esc(t("card.current")) + ")</span>" : "") + "</span><b>" + f2(r.mean) + "</b><div class='bar'><div class='rng' style='left:" + r.low * 100 + "%;width:" + Math.max(1, (r.high - r.low) * 100) + "%'></div><div class='tick' style='left:" + r.mean * 100 + "%'></div></div></li>";

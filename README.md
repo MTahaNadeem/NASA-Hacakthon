@@ -49,6 +49,15 @@ Things worth knowing:
 - AppEEARS returns one CSV for all places; `build_cache.py` splits it by place (`ID` column).
 - IMERG (`fetch_imerg.py`) is optional and slow (about 7,000 daily files per place); POWER is the fallback for extreme-rain days.
 
+## How the page is organised (for non-experts)
+
+The page is a light, four-step flow: **1 Where is your farm?** (search, phone location, map, quick picks) -> **2 What matters most to you?**
+(three sliders with one-line explanations, plus big buttons for how you water your crops) -> **3 Our suggestion** (best option with a
+"Fit /100" meter, "Why it works" and "Watch out for" in everyday words, confidence, and what to ask an agronomist; every option is listed
+below with the technical evidence folded under "Evidence and details") -> **4 More details and tools** (field profile, calendar,
+what-if sliders, crop rules, compare places). The plain-language sentences come from the six factor scores
+(`plain()` in `app/app.js`: a factor scoring 0.7 or more is a strength, 0.5 or less a watch-out). The theme is light only.
+
 ## Features
 
 - **Summary card** with the best rotation for your priorities, how it compares with the current one, a **confidence** level

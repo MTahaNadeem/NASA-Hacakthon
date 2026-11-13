@@ -3,14 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
 <title>Rotation Explorer</title>
-<meta name="description" content="Compare crop rotations for any field location using NASA data, with the evidence, uncertainty and data gaps shown.">
+<meta name="description" content="Find a better crop rotation for your farm. NASA data, explained in plain words, with the evidence and the gaps shown.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#0b1a11">
+<meta name="theme-color" content="#ffffff">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -27,7 +28,7 @@
       <a href="#data" data-i18n="nav.data">Data</a>
     </nav>
     <label class="langsel">
-      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
       <span class="sr" data-i18n="lang.label">Language</span>
       <select id="lang"></select>
     </label>
@@ -39,9 +40,10 @@
   <div class="hero-in">
     <div class="hero-copy">
       <p class="eyebrow"><span class="dot"></span><span data-i18n="hero.eyebrow">NASA Space Apps Challenge 2026</span></p>
-      <h1 id="hero-title"><span data-i18n="hero.t1">See the evidence</span> <em data-i18n="hero.t2">before</em> <span data-i18n="hero.t3">you change the rotation.</span></h1>
-      <p class="lede" data-i18n="hero.lede"></p>
-      <div class="cta"><a class="btn primary" href="#explore" data-i18n="hero.cta1">Explore a location</a><a class="btn" href="#steps" data-i18n="hero.cta2">How it works</a></div>
+      <h1 id="hero-title" data-i18n="hero.title">Find the best crop rotation for your farm</h1>
+      <p class="lede" data-i18n="hero.sub"></p>
+      <div class="cta"><a class="btn primary lg" href="#step1" data-i18n="hero.start">Start here</a><a class="btn lg" href="#steps" data-i18n="hero.cta2">How it works</a></div>
+      <p class="note" data-i18n="hero.note"></p>
     </div>
     <div class="art" id="art" aria-hidden="true"></div>
   </div>
@@ -60,81 +62,101 @@
 <main>
 <section class="sec" id="explore">
   <div class="wrap">
-    <header class="sec-head"><p class="kicker" data-i18n="ex.kicker">Explore</p><h2 data-i18n="ex.title">Compare rotations for any field</h2><p class="sub" data-i18n="ex.sub"></p></header>
+    <ol class="flow">
 
-    <div class="workspace">
-      <aside class="side" aria-label="Controls">
-        <section class="cardx">
-          <h3 data-i18n="loc.title">Location</h3>
-          <form id="searchform" class="field" autocomplete="off"><div class="sugwrap"><input id="q" type="search" role="combobox" aria-expanded="false" aria-controls="suggest" aria-autocomplete="list" autocomplete="off" data-i18n-ph="loc.search.ph" aria-label="Search" placeholder="Search a town or city"><ul id="suggest" role="listbox" data-i18n-aria="loc.suggest.aria" aria-label="Place suggestions" hidden></ul></div><button type="submit" class="btn primary sm" data-i18n="loc.search.btn">Search</button></form>
-          <form id="coordform" class="field two"><input id="lat" type="number" step="any" min="-90" max="90" data-i18n-ph="loc.lat" placeholder="Latitude" aria-label="Latitude"><input id="lon" type="number" step="any" min="-180" max="180" data-i18n-ph="loc.lon" placeholder="Longitude" aria-label="Longitude"><button type="submit" class="btn sm" data-i18n="loc.go">Go</button></form>
-          <button type="button" id="gps" class="btn gps"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="12" cy="12" r="3.2" fill="currentColor"/><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span data-i18n="loc.gps">Use my location</span></button>
-          <p class="mini" data-i18n="loc.gps.note"></p>
-          <p class="mini strong" data-i18n="loc.picks">Quick picks</p>
-          <p class="mini nomt" data-i18n="loc.picks.hint"></p>
-          <div id="loclist"></div>
-          <p id="status" class="status" role="status"></p>
-          <div id="presetrow" hidden>
-            <label class="lbl" for="preset" data-i18n="loc.preset">Rotation set to compare</label>
-            <select id="preset"></select>
-            <p class="mini" data-i18n="loc.preset.hint"></p>
+      <!-- STEP 1 -->
+      <li class="stepcard" id="step1">
+        <header class="stephead"><span class="stepnum" aria-hidden="true">1</span><div><h2 data-i18n="step.1.t">Where is your farm?</h2><p data-i18n="step.1.d"></p></div></header>
+        <div class="step1grid">
+          <div class="step1left">
+            <form id="searchform" class="field" autocomplete="off"><div class="sugwrap"><input id="q" type="search" role="combobox" aria-expanded="false" aria-controls="suggest" aria-autocomplete="list" autocomplete="off" data-i18n-ph="loc.search.ph" aria-label="Search" placeholder="Search a town or city"><ul id="suggest" role="listbox" data-i18n-aria="loc.suggest.aria" aria-label="Place suggestions" hidden></ul></div><button type="submit" class="btn primary" data-i18n="loc.search.btn">Search</button></form>
+            <button type="button" id="gps" class="btn gps"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="3.2" fill="currentColor"/><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span data-i18n="loc.gps">Use my location</span></button>
+            <p class="mini" data-i18n="loc.gps.note"></p>
+            <p class="label2" data-i18n="loc.picks">Quick picks</p>
+            <div id="loclist"></div>
+            <p class="mini" data-i18n="loc.picks.hint"></p>
+            <details class="coords"><summary data-i18n="loc.coords">Type coordinates instead</summary>
+              <form id="coordform" class="field two"><input id="lat" type="number" step="any" min="-90" max="90" data-i18n-ph="loc.lat" placeholder="Latitude" aria-label="Latitude"><input id="lon" type="number" step="any" min="-180" max="180" data-i18n-ph="loc.lon" placeholder="Longitude" aria-label="Longitude"><button type="submit" class="btn" data-i18n="loc.go">Go</button></form>
+            </details>
+            <p id="status" class="status" role="status"></p>
+            <div id="presetrow" hidden>
+              <label class="lbl" for="preset" data-i18n="loc.preset">Rotation set to compare</label>
+              <select id="preset"></select>
+              <p class="mini" data-i18n="loc.preset.hint"></p>
+            </div>
           </div>
-        </section>
+          <div class="mapcard"><div class="mapwrap"><div id="map" aria-label="Map"></div><p class="maphint" id="maphint" data-i18n="loc.map.hint"></p></div>
+            <div class="mapbar">
+              <div class="pinfo"><b id="pincoords"></b><span id="mapstatus" role="status"></span></div>
+              <div class="mapbtns"><button type="button" id="analyse" class="btn primary sm" data-i18n="map.analyse">Show data for this pin</button><button type="button" id="viewres" class="btn sm" data-i18n="map.view" hidden>View results</button></div>
+            </div>
+          </div>
+        </div>
+      </li>
 
-        <section class="cardx">
-          <h3 data-i18n="pri.title">Your priorities</h3>
+      <!-- STEP 2 -->
+      <li class="stepcard" id="step2">
+        <header class="stephead"><span class="stepnum" aria-hidden="true">2</span><div><h2 data-i18n="step.2.t">What matters most to you?</h2><p data-i18n="step.2.d"></p></div></header>
+        <div class="step2grid">
           <div class="sliders" id="sliders">
-            <label><span data-i18n="pri.water">Water saving</span><output id="o-water"></output><input type="range" id="sl-water" min="0" max="100" value="50"></label>
-            <label><span data-i18n="pri.income">Income (yield risk)</span><output id="o-income"></output><input type="range" id="sl-income" min="0" max="100" value="50"></label>
-            <label><span data-i18n="pri.soil">Soil building</span><output id="o-soil"></output><input type="range" id="sl-soil" min="0" max="100" value="50"></label>
+            <div class="slider"><label for="sl-water"><span data-i18n="pri.water">Water saving</span><output id="o-water"></output></label><input type="range" id="sl-water" min="0" max="100" value="50"><p class="mini" data-i18n="pri.water.d"></p></div>
+            <div class="slider"><label for="sl-income"><span data-i18n="pri.income">Income (yield risk)</span><output id="o-income"></output></label><input type="range" id="sl-income" min="0" max="100" value="50"><p class="mini" data-i18n="pri.income.d"></p></div>
+            <div class="slider"><label for="sl-soil"><span data-i18n="pri.soil">Soil building</span><output id="o-soil"></output></label><input type="range" id="sl-soil" min="0" max="100" value="50"><p class="mini" data-i18n="pri.soil.d"></p></div>
           </div>
-          <p class="mini" data-i18n="pri.hint"></p>
-          <label class="lbl" for="irr" data-i18n="irr.title">Water source</label>
-          <select id="irr"><option value="u" data-i18n="irr.unknown">Not sure</option><option value="y" data-i18n="irr.yes">Irrigated</option><option value="n" data-i18n="irr.no">Rain-fed only</option></select>
-          <p class="mini" data-i18n="irr.hint"></p>
-        </section>
+          <fieldset class="seg" id="irrset">
+            <legend data-i18n="irr.q">How do you water your crops?</legend>
+            <label><input type="radio" name="irr" value="u" checked><span data-i18n="irr.unknown">Not sure</span></label>
+            <label><input type="radio" name="irr" value="y"><span data-i18n="irr.yes">Irrigated</span></label>
+            <label><input type="radio" name="irr" value="n"><span data-i18n="irr.no">Rain-fed only</span></label>
+            <p class="mini" data-i18n="irr.hint"></p>
+          </fieldset>
+        </div>
+      </li>
 
-        <section class="cardx">
-          <h3 data-i18n="sc.title">What if it gets drier?</h3>
-          <label class="sc"><span data-i18n="sc.rain">Rainfall change</span><output id="o-rain"></output><input type="range" id="sl-rain" min="-40" max="20" value="0" step="5"></label>
-          <label class="sc tmp"><span data-i18n="sc.temp">Temperature change</span><output id="o-temp"></output><input type="range" id="sl-temp" min="0" max="4" value="0" step="1"></label>
-          <p id="tempna" class="mini" data-i18n="sc.temp.na" hidden></p>
-          <p id="flip" class="flip"></p>
-          <p class="mini" data-i18n="sc.note"></p>
-        </section>
-      </aside>
+      <!-- STEP 3 -->
+      <li class="stepcard result" id="step3">
+        <header class="stephead"><span class="stepnum" aria-hidden="true">3</span><div><h2 data-i18n="step.3.t">Our suggestion</h2><p data-i18n="step.3.d"></p></div></header>
+        <div id="printhead" class="only-print"></div>
+        <div class="reshead">
+          <div><h3 id="resname"></h3><p class="mini" id="resmeta"></p></div>
+          <div class="actions"><button type="button" id="copylink" class="btn sm" data-i18n="share.copy">Copy link</button><button type="button" id="printbtn" class="btn sm" data-i18n="print.btn">Print / save PDF</button><span id="sharemsg" class="mini" role="status"></span></div>
+        </div>
+        <div id="summary"></div>
+        <h3 class="sub3" data-i18n="res.more">All options, best first</h3>
+        <p class="mini" data-i18n="res.hint"></p>
+        <div id="cards"></div>
+        <p class="mini covrow"><span data-i18n="cov.title">Data used</span>:</p>
+        <ul class="cov" id="cov" aria-label="Data used"></ul>
+      </li>
 
-      <div class="main">
-        <div class="mapcard"><div class="mapwrap"><div id="map" aria-label="Map"></div><p class="maphint" id="maphint" data-i18n="loc.map.hint"></p></div>
-          <div class="mapbar">
-            <div class="pinfo"><b id="pincoords"></b><span id="mapstatus" role="status"></span></div>
-            <div class="mapbtns"><button type="button" id="analyse" class="btn primary sm" data-i18n="map.analyse">Show data for this pin</button><button type="button" id="viewres" class="btn sm" data-i18n="map.view" hidden>View results</button></div>
-          </div></div>
-
-        <section class="results">
-          <div id="printhead" class="only-print"></div>
-          <div class="reshead">
-            <div><h3 id="resname"></h3><p class="mini" id="resmeta"></p></div>
-            <ul class="cov" id="cov" aria-label="Data used"></ul>
-            <div class="actions"><button type="button" id="copylink" class="btn sm" data-i18n="share.copy">Copy link</button><button type="button" id="printbtn" class="btn sm" data-i18n="print.btn">Print / save PDF</button><span id="sharemsg" class="mini" role="status"></span></div>
+      <!-- STEP 4 -->
+      <li class="stepcard" id="step4">
+        <header class="stephead"><span class="stepnum" aria-hidden="true">4</span><div><h2 data-i18n="step.4.t">More details and tools</h2><p data-i18n="step.4.d"></p></div></header>
+        <div class="tabs" role="tablist">
+          <button role="tab" id="t-profile" aria-selected="true" aria-controls="p-profile" data-tab="profile" data-i18n="tab.profile">Field profile</button>
+          <button role="tab" id="t-cal" aria-selected="false" aria-controls="p-cal" data-tab="cal" data-i18n="tab.cal">Calendar</button>
+          <button role="tab" id="t-whatif" aria-selected="false" aria-controls="p-whatif" data-tab="whatif" data-i18n="tab.whatif">What if?</button>
+          <button role="tab" id="t-rules" aria-selected="false" aria-controls="p-rules" data-tab="rules" data-i18n="tab.rules">Crop rules</button>
+          <button role="tab" id="t-cmp" aria-selected="false" aria-controls="p-cmp" data-tab="cmp" data-i18n="tab.cmp">Compare places</button>
+        </div>
+        <div class="panel" id="p-profile" role="tabpanel" aria-labelledby="t-profile"><div id="profile"></div></div>
+        <div class="panel" id="p-cal" role="tabpanel" aria-labelledby="t-cal" hidden><p class="mini" data-i18n="cal.hint"></p><div id="calendar"></div></div>
+        <div class="panel" id="p-whatif" role="tabpanel" aria-labelledby="t-whatif" hidden>
+          <h3 data-i18n="sc.title2">What if the weather changes?</h3>
+          <div class="whatif">
+            <label class="sc" for="sl-rain"><span data-i18n="sc.rain">Rainfall change</span><output id="o-rain"></output></label><input type="range" id="sl-rain" min="-40" max="20" value="0" step="5">
+            <label class="sc" for="sl-temp"><span data-i18n="sc.temp">Temperature change</span><output id="o-temp"></output></label><input type="range" id="sl-temp" min="0" max="4" value="0" step="1">
+            <p id="tempna" class="mini" data-i18n="sc.temp.na" hidden></p>
+            <p id="flip" class="flip"></p>
+            <p class="mini" data-i18n="sc.note"></p>
           </div>
-          <div class="tabs" role="tablist">
-            <button role="tab" id="t-rot" aria-selected="true" aria-controls="p-rot" data-tab="rot" data-i18n="tab.rot">Rotations</button>
-            <button role="tab" id="t-profile" aria-selected="false" aria-controls="p-profile" data-tab="profile" data-i18n="tab.profile">Field profile</button>
-            <button role="tab" id="t-cal" aria-selected="false" aria-controls="p-cal" data-tab="cal" data-i18n="tab.cal">Calendar</button>
-            <button role="tab" id="t-rules" aria-selected="false" aria-controls="p-rules" data-tab="rules" data-i18n="tab.rules">Crop rules</button>
-            <button role="tab" id="t-cmp" aria-selected="false" aria-controls="p-cmp" data-tab="cmp" data-i18n="tab.cmp">Compare places</button>
-          </div>
-          <div class="panel" id="p-rot" role="tabpanel" aria-labelledby="t-rot"><div id="summary"></div><p class="mini" data-i18n="cards.hint"></p><div id="cards"></div></div>
-          <div class="panel" id="p-profile" role="tabpanel" aria-labelledby="t-profile" hidden><div id="profile"></div></div>
-          <div class="panel" id="p-cal" role="tabpanel" aria-labelledby="t-cal" hidden><p class="mini" data-i18n="cal.hint"></p><div id="calendar"></div></div>
-          <div class="panel" id="p-rules" role="tabpanel" aria-labelledby="t-rules" hidden><p class="mini" data-i18n="rules.hint"></p><div id="rules"></div></div>
-          <div class="panel" id="p-cmp" role="tabpanel" aria-labelledby="t-cmp" hidden>
-            <div class="cmpbar"><label class="lbl" for="cmpsel" data-i18n="cmp.pick">Compare with</label><select id="cmpsel"></select></div>
-            <p class="mini" data-i18n="cmp.hint"></p><div id="compare"></div></div>
-        </section>
-      </div>
-    </div>
+        </div>
+        <div class="panel" id="p-rules" role="tabpanel" aria-labelledby="t-rules" hidden><p class="mini" data-i18n="rules.hint"></p><div id="rules"></div></div>
+        <div class="panel" id="p-cmp" role="tabpanel" aria-labelledby="t-cmp" hidden>
+          <div class="cmpbar"><label class="lbl" for="cmpsel" data-i18n="cmp.pick">Compare with</label><select id="cmpsel"></select></div>
+          <p class="mini" data-i18n="cmp.hint"></p><div id="compare"></div></div>
+      </li>
+    </ol>
   </div>
 </section>
 
