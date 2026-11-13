@@ -33,6 +33,14 @@ Do not claim the translations are expert-reviewed unless a fluent speaker has ch
   roughly 1% for Faisalabad. Say "reports say ...", or show the tool's own pH 8.2 / low-carbon numbers instead.
 - Name only the NASA datasets actually loaded for the place you demo: check the coloured chips above the results (POWER, SoilGrids, MODIS, SMAP).
 
+## Sources to cite (open each link before presenting)
+- FAO, Irrigation Water Management: Irrigation Water Needs, Training Manual 3 (Brouwer & Heibloem), Table 5: https://www.fao.org/4/s2022e/s2022e02.htm
+- FAO/GIEWS Foodcrops & Shortages 02/02, Pakistan: https://www.fao.org/4/y6221e/pays/pak0202e.htm
+- FEWS NET, Pakistan Special Report, May 2026 (FAO seasonal crop calendar): https://fews.net/asia/pakistan/special-report/may-2026
+- Punjab Agriculture Department, Rapeseed & Mustard: https://agripunjab.punjab.gov.pk/node/9623
+- USDA NASS, Agricultural Handbook 628 (Iowa): https://esmis.nal.usda.gov/usda-esmis/files/vm40xr56k/9p290c614/j9602330g/planting-12-05-1997.html
+- Chickpea and mungbean windows come from secondary Pakistani sources we did not open: say "partly sourced" if asked.
+
 ## AI disclosure
 AI tools were used in this project. Claude (Anthropic) helped draft the project proposal and wrote or reviewed parts of the code: the scoring module, data-fetch scripts, cache builder and web app. All AI-assisted output was reviewed and tested by the team. Scoring rules, crop parameters and data choices were decided by the team. [Edit to match what your team actually did.]
 

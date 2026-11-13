@@ -4,12 +4,12 @@
   "use strict";
   var t = I18N.t;
   var SRC = ["power", "soilgrids", "modis", "smap", "imerg"], SRC_NAME = { power: "NASA POWER", soilgrids: "SoilGrids", modis: "MODIS", smap: "SMAP", imerg: "GPM IMERG" };
-  var TABS = ["profile", "cal", "whatif", "rules", "cmp"];
+  var TABS = ["profile", "cal", "whatif", "rules", "mine", "cmp"];
   var state = { cfgRaw: null, cfgBase: null, cfg: null, index: [], places: [], loc: null, data: null, presetKey: null,
     sl: { water: .5, income: .5, soil: .5 }, rainDelta: 0, tempDelta: 0, irr: "u", overrides: {},
     map: null, markers: {}, customMarker: null, pin: null, loading: false, loadToken: 0, tab: "rot", status: null,
     cmp: null, cmpToken: 0, printOpen: [], urlTimer: null };
-  state.tab = "profile";
+  state.tab = "profile"; state.mine = [];
   var $ = function (id) { return document.getElementById(id); };
   var mean = Scoring.mean;
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
@@ -21,11 +21,14 @@
 
   /* ---------- names, months, gaps ---------- */
   function cropName(id) { return t("crop." + id); }
-  function rotLabel(id) {
-    var c = state.cfgRaw.rotations[id].cycle, plan = function (p) { return p.map(cropName).join(" + "); };
+  function cycleLabel(c) {
+    var plan = function (p) { return p.map(cropName).join(" + "); };
     if (c.length === 1) return c[0].length === 1 ? t("rot.mono", { c: cropName(c[0][0]) }) : plan(c[0]);
-    return t("rot.cycle", { list: c.map(plan).join(c.length === 2 ? " ↔ " : " → ") });
+    return t("rot.cycle", { list: c.map(plan).join(c.length === 2 ? " \u2194 " : " \u2192 ") });
   }
+  function rotLabel(id) { return id === "mine" ? t("mine.label") + ": " + cycleLabel(state.mine) : cycleLabel(state.cfgRaw.rotations[id].cycle); }
+  // ids of the rotations being compared: the place's set, plus the user's own rotation if they built one
+  function currentIds() { return state.loc ? state.loc.rotation_ids.concat(state.mine.length ? ["mine"] : []) : []; }
   function monthNames(style) {
     try { var f = new Intl.DateTimeFormat(I18N.lang(), { month: style }), o = []; for (var m = 0; m < 12; m++) o.push(f.format(new Date(2000, m, 15))); return o; }
     catch (e) { return style === "narrow" ? "JFMAMJJASOND".split("") : ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]; }
@@ -49,13 +52,22 @@
   }
 
   /* ---------- configuration: hemisphere shift, then the user's crop-rule edits ---------- */
-  // Crop calendars are Northern Hemisphere templates: shift every month list by 6 for the Southern Hemisphere.
-  function effectiveCfg(lat) {
-    if (lat >= 0) return state.cfgRaw;
-    var c = JSON.parse(JSON.stringify(state.cfgRaw)), sh = function (m) { return (m - 1 + 6) % 12 + 1; };
+  function regionFor(lat, lon) {
+    var R = state.cfgRaw.regions || {};
+    for (var k in R) { var b = R[k].box; if (lat >= b[0] && lat <= b[2] && lon >= b[1] && lon <= b[3]) return k; }
+    return "generic";
+  }
+  // Month calendars come from a sourced regional calendar where we have one (Pakistan's Punjab, Iowa). Everywhere else they are
+  // Northern Hemisphere templates, shifted by 6 months south of 10 degrees S (near the equator seasons are not simply flipped). Always returns a copy.
+  function effectiveCfg(lat, lon) {
+    var c = JSON.parse(JSON.stringify(state.cfgRaw)), region = regionFor(lat, lon), sh = function (m) { return (m - 1 + 6) % 12 + 1; };
     Object.keys(c.crops).forEach(function (id) {
-      var k = c.crops[id]; k.sow = sh(k.sow); k.harvest = sh(k.harvest);
-      ["heat_months", "frost_months", "rain_months"].forEach(function (f) { k[f] = k[f].map(sh); });
+      var k = c.crops[id], cal = k.calendars && k.calendars[region];
+      if (cal) { k.sow = cal.sow; k.harvest = cal.harvest; k.cal_info = { region: region, status: cal.status, ids: cal.ids, note: cal.note }; }
+      else {
+        if (lat < -10) { k.sow = sh(k.sow); k.harvest = sh(k.harvest); ["heat_months", "frost_months", "rain_months"].forEach(function (f) { k[f] = k[f].map(sh); }); }
+        k.cal_info = { region: "generic", status: "team", ids: [], note: "" };
+      }
     });
     return c;
   }
@@ -69,7 +81,8 @@
     });
     return c;
   }
-  function buildCfg(lat) { state.cfgBase = effectiveCfg(lat); state.cfg = withOverrides(state.cfgBase); }
+  function applyMine(cfg) { if (state.mine.length) cfg.rotations.mine = { cycle: state.mine }; else delete cfg.rotations.mine; }
+  function buildCfg(lat, lon) { state.cfgBase = effectiveCfg(lat, lon); applyMine(state.cfgBase); state.cfg = withOverrides(state.cfgBase); }
 
   /* ---------- share link: the whole view lives in the URL ---------- */
   function writeUrl(now) {
@@ -86,6 +99,7 @@
       if (state.tab !== "rot") q.set("tab", state.tab);
       if (state.cmp && state.cmp.placeId) q.set("cmp", state.cmp.placeId);
       if (Object.keys(state.overrides).length) q.set("r", JSON.stringify(state.overrides));
+      if (state.mine.length) q.set("mine", state.mine.map(function (p) { return p.join("+"); }).join(";"));
       try { history.replaceState(null, "", "?" + q.toString()); } catch (e) {}
     };
     if (now) go(); else state.urlTimer = setTimeout(go, 300);
@@ -106,7 +120,13 @@
         if (Object.keys(clean).length) state.overrides[id] = clean;
       });
     } catch (e) {}
+    state.mine = parseMine(q.get("mine"));
     return { loc: q.get("loc"), lat: num("lat"), lon: num("lon"), preset: q.get("preset"), cmp: q.get("cmp") };
+  }
+  // "wheat+chickpea;corn" -> [["wheat","chickpea"],["corn"]], keeping only known crops, at most 3 years of 2 crops
+  function parseMine(str) {
+    if (!str) return [];
+    return str.split(";").slice(0, 3).map(function (y) { return y.split("+").filter(function (c, i, a) { return state.cfgRaw.crops[c] && a.indexOf(c) === i; }).slice(0, 2); }).filter(function (p) { return p.length; });
   }
   function syncControls() {
     ["water", "income", "soil"].forEach(function (k) { $("sl-" + k).value = Math.round(state.sl[k] * 100); $("o-" + k).textContent = Math.round(state.sl[k] * 100) + "%"; });
@@ -147,7 +167,7 @@
   }
   function setLang(code) {
     return I18N.set(code).then(function () {
-      I18N.remember(I18N.lang()); applyStatic(); buildPresetOptions(); buildLocationList(); buildCmpOptions(); renderStatus(); renderMapTips(); renderHow(); renderRules();
+      I18N.remember(I18N.lang()); applyStatic(); buildPresetOptions(); buildLocationList(); buildCmpOptions(); renderStatus(); renderMapTips(); renderHow(); renderRules(); renderMine();
       if (state.data) { renderBanner(); renderProfile(); renderAll(); }
       writeUrl();
     });
@@ -167,7 +187,7 @@
     Promise.all([getJSON("rotations.json"), getJSON("data/index.json"), I18N.set(code), getJSON("places.json")]).then(function (r) {
       state.cfgRaw = r[0]; state.cfg = r[0]; state.cfgBase = r[0]; state.index = r[1]; state.places = r[3];
       var u = readUrl();
-      applyStatic(); buildPresetOptions(); buildLocationList(); buildCmpOptions(); buildMap(); bindInputs(); bindTabs(); bindShare(); bindPwa(); renderHow(); syncControls(); setTab(state.tab, true);
+      applyStatic(); buildPresetOptions(); buildLocationList(); buildCmpOptions(); buildMap(); bindInputs(); bindTabs(); bindShare(); bindPwa(); renderHow(); renderMine(); syncControls(); setTab(state.tab, true);
       var place = u.loc && findPlace(u.loc);
       if (place) selectPlace(place);
       else if (u.lat != null && u.lon != null) loadCustom(u.lat, u.lon, { preset: u.preset && state.cfgRaw.presets[u.preset] ? u.preset : null });
@@ -255,7 +275,7 @@
     getJSON("data/" + id + ".json").then(function (d) {
       var l = state.index.filter(function (x) { return x.id === id; })[0];
       state.loadToken++; state.data = d; state.loc = Object.assign({}, l, { placeId: id }); state.presetKey = null;
-      buildCfg(d.lat); $("presetrow").hidden = true; setStatus(null);
+      buildCfg(d.lat, d.lon); $("presetrow").hidden = true; setStatus(null);
       markPressed(id); placePin(d.lat, d.lon, true);
       renderBanner(); renderProfile(); renderRules(); renderAll(); renderMapBar();
     });
@@ -278,7 +298,7 @@
     if (!state.data) $("cards").innerHTML = "<p class='mini'>" + esc(t("st.fetchPower")) + "</p>";
     LiveData.fetchLocation(lat, lon, function (key) { if (token === state.loadToken) setStatus(key); }).then(function (d) {
       if (token !== state.loadToken) return;
-      state.loading = false; state.data = d; buildCfg(d.lat);
+      state.loading = false; state.data = d; buildCfg(d.lat, d.lon);
       var key = opts.preset || LiveData.suggestPreset(d); $("preset").value = key; $("presetrow").hidden = false;
       state.loc = { id: "custom", placeId: opts.placeId || null, label: opts.label || null, mine: !!opts.mine, name: "", lat: d.lat, lon: d.lon };
       renderBanner(); setStatus("st.loaded", { name: locName() }); renderProfile(); applyPreset(key);
@@ -495,7 +515,7 @@
     var heatM = monthStats(d.climate.heat_days).map(function (s) { return s[1]; });
     var extM = d.climate.extreme_days[0].map(function (_, m) { return mean(d.climate.extreme_days.map(function (r) { return r[m]; })); });
     var h = "<div class='chart'><div class='cal'><div></div>" + ML.map(function (m) { return "<div class='m'>" + esc(m) + "</div>"; }).join("");
-    state.loc.rotation_ids.forEach(function (rid) {
+    currentIds().forEach(function (rid) {
       var rot = cfg.rotations[rid];
       rot.cycle.forEach(function (plan, pi) {
         var covered = {}, heatCrit = {};
@@ -580,7 +600,7 @@
   function renderAll() {
     if (!state.data || !state.loc) return;
     renderHead(); renderCalendar();
-    var d = scen(state.data), cfg = state.cfg, out = rank(cfg, d, state.loc.rotation_ids), h = "", top = out.results[0];
+    var d = scen(state.data), cfg = state.cfg, out = rank(cfg, d, currentIds()), h = "", top = out.results[0];
     var gaps = (d.gaps || []).map(gapText);
     if (!(d.soil && d.soil.ph) && !(d.gaps || []).some(function (g) { return /^SoilGrids/.test(g); })) gaps.push(t("gap.soilmissing"));
     gaps = gaps.concat([t("gap.static1"), t("gap.static2")]);
@@ -611,7 +631,7 @@
 
   // Where would the top choice change? Rain and temperature are swept separately against the unchanged record.
   function renderFlip() {
-    var el = $("flip"), ids = state.loc.rotation_ids, canT = Scoring.hasTemperatureScenario(state.data);
+    var el = $("flip"), ids = currentIds(), canT = Scoring.hasTemperatureScenario(state.data);
     var topId = function (rainP, dT) { return rank(state.cfg, Scoring.applyScenario(state.data, rainP, dT), ids).results[0].id; };
     var base = topId(0, 0), lines = [], p, dT, hit = null;
     for (p = -5; p >= -40 && !hit; p -= 5) { var a = topId(p, 0); if (a !== base) hit = { top: a, p: -p }; }
@@ -629,7 +649,7 @@
   var RULE_RANGE = { water_mm: [50, 1500], ph0: [3, 10], ph1: [3, 10] };
   function usedCrops() {
     var seen = {}, out = []; if (!state.loc) return out;
-    state.loc.rotation_ids.forEach(function (rid) { state.cfgRaw.rotations[rid].cycle.forEach(function (p) { p.forEach(function (c) { if (!seen[c]) { seen[c] = 1; out.push(c); } }); }); });
+    currentIds().forEach(function (rid) { (rid === "mine" ? state.mine : state.cfgRaw.rotations[rid].cycle).forEach(function (p) { p.forEach(function (c) { if (!seen[c]) { seen[c] = 1; out.push(c); } }); }); });
     return out;
   }
   function ruleValue(cfg, id, f) { var k = cfg.crops[id]; return f === "ph0" ? k.ph[0] : f === "ph1" ? k.ph[1] : k[f]; }
@@ -646,6 +666,7 @@
         "<td><input type='text' maxlength='200' data-crop='" + id + "' data-field='source' value='" + esc(k.source || "") + "' placeholder='" + esc(t("rules.src.ph")) + "' aria-label='" + esc(nm + ": " + t("rules.src")) + "'></td></tr>";
     });
     box.innerHTML = h + "</table></div><div class='rulesbar'><button type='button' id='rulesreset' class='btn sm'>" + esc(t("rules.reset")) + "</button><span id='rulesmsg' role='alert'></span></div>"; markScrollers();
+    renderHow();   // the sources table follows the place, the rotation set and the user's own rotation
   }
   function onRuleChange(el) {
     var id = el.dataset.crop, f = el.dataset.field, msg = $("rulesmsg"); if (msg) msg.textContent = "";
@@ -694,27 +715,67 @@
     if (c.loading) { box.innerHTML = "<p class='mini'>" + esc(t("cmp.loading", { name: placeName(p) })) + "</p>"; return; }
     if (c.error) { box.innerHTML = "<div class='cmpcol err'>" + esc(t("cmp.err", { msg: c.error })) + "</div>"; return; }
     if (!state.data || !state.loc) { box.innerHTML = "<p class='mini'>" + esc(t("cmp.empty")) + "</p>"; return; }
-    box.innerHTML = "<div class='cmpgrid'>" + cmpColumn(t("cmp.here") + ": " + locName(), state.data, state.cfg, state.loc.rotation_ids, state.loc.current_rotation) +
-      cmpColumn(placeName(p), c.data, withOverrides(effectiveCfg(c.data.lat)), c.ids, c.current) + "</div>";
+    box.innerHTML = "<div class='cmpgrid'>" + cmpColumn(t("cmp.here") + ": " + locName(), state.data, state.cfg, currentIds(), state.loc.current_rotation) +
+      cmpColumn(placeName(p), c.data, withOverrides(effectiveCfg(c.data.lat, c.data.lon)), c.ids, c.current) + "</div>";
   }
 
-  /* ---------- scoring explainer ---------- */
+  /* ---------- build your own rotation ---------- */
+  function readMine() {
+    var plans = [];
+    for (var y = 1; y <= 3; y++) {
+      var p = [$("mine-" + y + "-1").value, $("mine-" + y + "-2").value].filter(function (c, i, a) { return c && a.indexOf(c) === i; });
+      if (p.length) plans.push(p);
+    }
+    return plans;
+  }
+  function renderMine() {
+    var box = $("mine"); if (!box || !state.cfgRaw) return;
+    var ids = Object.keys(state.cfgRaw.crops).sort(function (a, b) { return cropName(a).localeCompare(cropName(b), I18N.lang()); });
+    var opts = function (sel) { return "<option value=''>" + esc(t("mine.none")) + "</option>" + ids.map(function (id) { return "<option value='" + id + "'" + (sel === id ? " selected" : "") + ">" + esc(cropName(id)) + "</option>"; }).join(""); };
+    var h = "<div class='minegrid'>";
+    for (var y = 1; y <= 3; y++) {
+      var p = state.mine[y - 1] || [];
+      h += "<fieldset class='mineyear'><legend>" + esc(t("mine.year", { n: y })) + "</legend>" +
+        "<label>" + esc(t("mine.crop1")) + "<select id='mine-" + y + "-1' data-mine='1'>" + opts(p[0]) + "</select></label>" +
+        "<label>" + esc(t("mine.crop2")) + "<select id='mine-" + y + "-2' data-mine='1'>" + opts(p[1]) + "</select></label></fieldset>";
+    }
+    box.innerHTML = h + "</div><div class='rulesbar'><button type='button' id='mineclear' class='btn sm'>" + esc(t("mine.clear")) + "</button></div>";
+  }
+  function setMine(plans) {
+    state.mine = plans;
+    if (!state.loc) { writeUrl(); return; }
+    applyMine(state.cfgBase); state.cfg = withOverrides(state.cfgBase);
+    renderRules(); renderHow(); renderAll();
+  }
+
+  /* ---------- scoring explainer + where every crop rule comes from ---------- */
   function renderHow() {
     var h = "<div class='tablewrap'><table><tr><th>" + esc(t("th.rule")) + "</th><th>" + esc(t("th.data")) + "</th><th>" + esc(t("th.slider")) + "</th><th>" + esc(t("th.how")) + "</th></tr>";
     Scoring.FACTORS.forEach(function (f) {
       h += "<tr><td><b>" + esc(t("f." + f.id + ".label")) + "</b></td><td>" + esc(t("f." + f.id + ".data")) + "</td><td>" + esc(t("pri." + Scoring.sliderOf(f, irrMode()))) + "</td><td>" + esc(t("f." + f.id + ".rule")) + "</td></tr>";
     });
     h += "</table></div><p class='mini'>" + esc(t("sc2.note")) + " <a href='rotations.json'>rotations.json</a></p>";
-    var cfg = state.cfg || state.cfgRaw;
-    h += "<h3 class='srch'>" + esc(t("how.src")) + "</h3><ul class='srclist'>" + Object.keys(cfg.crops).map(function (id) {
-      var s = cfg.crops[id].source; return "<li><b>" + esc(cropName(id)) + "</b>: " + (s ? esc(s) : "<span class='mini'>" + esc(t("how.src.none")) + "</span>") + "</li>";
-    }).join("") + "</ul>";
-    $("how").innerHTML = h; markScrollers();
+    var cfg = state.cfg || state.cfgRaw, ids = state.loc ? usedCrops() : Object.keys(cfg.crops), MS = monthNames("short"), SRC = state.cfgRaw.sources || {};
+    var badge = function (st) { return "<span class='pill st-" + st + "'>" + esc(t("src." + st)) + "</span>"; };
+    h += "<h3 class='srch'>" + esc(t("how.src")) + "</h3><p class='mini'>" + esc(t("how.src.hint")) + "</p><div class='tablewrap'><table class='srctable'><tr><th>" + esc(t("rules.crop")) + "</th><th>" + esc(t("how.src")) + "</th></tr>";
+    ids.forEach(function (id) {
+      var k = cfg.crops[id], ci = k.cal_info || { region: "generic", status: "team", ids: [], note: "" }, wi = k.water || { range: null, ids: [], status: "team" }, seen = {}, links = "";
+      ci.ids.concat(wi.ids).forEach(function (sid) {
+        var so = SRC[sid]; if (!so || seen[sid]) return; seen[sid] = 1;
+        links += "<li><a href='" + esc(so.url) + "' target='_blank' rel='noopener' title='" + esc(so.quote || "") + "'>" + esc(so.title) + "</a> <span class='mini'>(" + esc(t(so.read ? "src.read" : "src.notread")) + ")</span></li>";
+      });
+      h += "<tr><td><b>" + esc(cropName(id)) + "</b></td><td>" +
+        "<div title='" + esc(ci.note || "") + "'>" + esc(t("src.cal.line", { region: t("region." + ci.region), from: MS[k.sow - 1], to: MS[k.harvest - 1] })) + " " + badge(ci.status) + "</div>" +
+        "<div>" + esc(wi.range ? t("src.water.line", { mm: k.water_mm, lo: wi.range[0], hi: wi.range[1] }) : t("src.water.team", { mm: k.water_mm })) + " " + badge(wi.status) + "</div>" +
+        (links ? "<ul class='srclinks'>" + links + "</ul>" : "") + (k.source ? "<div class='mini'>" + esc(k.source) + "</div>" : "") + "</td></tr>";
+    });
+    $("how").innerHTML = h + "</table></div>"; markScrollers();
   }
 
   // crop-rule edits use event delegation so the inputs keep focus while the ranking re-renders
-  document.addEventListener("change", function (e) { var el = e.target; if (el.dataset && el.dataset.crop && el.dataset.field) onRuleChange(el); });
+  document.addEventListener("change", function (e) { var el = e.target; if (el.dataset && el.dataset.crop && el.dataset.field) onRuleChange(el); else if (el.dataset && el.dataset.mine) setMine(readMine()); });
   document.addEventListener("click", function (e) {
+    if (e.target.id === "mineclear") { setMine([]); renderMine(); }
     if (e.target.id === "rulesreset") { state.overrides = {}; state.cfg = state.cfgBase; renderRules(); renderHow(); renderAll(); }
   });
 
