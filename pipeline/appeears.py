@@ -1,7 +1,9 @@
 """Submit / check / download NASA AppEEARS point-sample jobs for MODIS NDVI and SMAP root-zone moisture.
 
 Needs a free NASA Earthdata Login:  export EARTHDATA_USER=... EARTHDATA_PASS=...
+  python pipeline/appeears.py products SPL4          # find real product names containing a word
   python pipeline/appeears.py layers MOD13Q1.061     # list layer names (verify before submitting!)
+  python pipeline/appeears.py record modis_ndvi <task_id>   # save a task id submitted earlier
   python pipeline/appeears.py submit                 # one task per product, all locations as points
   python pipeline/appeears.py status                 # check queued tasks
   python pipeline/appeears.py download               # fetch finished CSVs into pipeline/raw/_appeears/
@@ -29,6 +31,16 @@ def token():
     r = requests.post(f"{API}/login", auth=(u, p), timeout=60); r.raise_for_status()
     return {"Authorization": "Bearer " + r.json()["token"]}
 
+def cmd_products(word):
+    r = requests.get(f"{API}/product", timeout=60); r.raise_for_status()
+    for p in r.json():
+        if word.lower() in p["ProductAndVersion"].lower() or word.lower() in p.get("Description", "").lower():
+            print(p["ProductAndVersion"], "|", p.get("Description", ""))
+
+def cmd_record(name, task_id):
+    tasks = json.loads(STATE.read_text()) if STATE.exists() else {}
+    tasks[name] = task_id; STATE.parent.mkdir(parents=True, exist_ok=True); STATE.write_text(json.dumps(tasks, indent=1)); print("recorded", name, task_id)
+
 def cmd_layers(product):
     r = requests.get(f"{API}/product/{product}", timeout=60); r.raise_for_status()
     print("\n".join(sorted(r.json().keys())))
@@ -38,14 +50,16 @@ def cmd_submit():
     y1 = CFG["period"]["end_year"]
     coords = [{"id": l["id"], "latitude": l["lat"], "longitude": l["lon"], "category": "field"} for l in CFG["locations"]]
     for name, p in PRODUCTS.items():
+        if name in tasks: print("already submitted", name, tasks[name]); continue
         y0 = p.get("y0") or CFG["period"]["start_year"]
         body = {"task_type": "point", "task_name": f"rotation-explorer-{name}",
                 "params": {"dates": [{"startDate": f"01-01-{y0}", "endDate": f"12-31-{y1}"}],
                            "layers": [{"product": p["product"], "layer": p["layer"]}],
                            "coordinates": coords}}
-        r = requests.post(f"{API}/task", json=body, headers=h, timeout=120); r.raise_for_status()
+        r = requests.post(f"{API}/task", json=body, headers=h, timeout=120)
+        if not r.ok: print("FAILED", name, r.status_code, r.text[:500]); continue
         tasks[name] = r.json()["task_id"]; print("submitted", name, tasks[name])
-    STATE.parent.mkdir(parents=True, exist_ok=True); STATE.write_text(json.dumps(tasks, indent=1))
+        STATE.parent.mkdir(parents=True, exist_ok=True); STATE.write_text(json.dumps(tasks, indent=1))
 
 def cmd_status():
     h = token()
@@ -64,5 +78,6 @@ def cmd_download():
 
 if __name__ == "__main__":
     c = sys.argv[1] if len(sys.argv) > 1 else ""
-    {"layers": lambda: cmd_layers(sys.argv[2]), "submit": cmd_submit, "status": cmd_status, "download": cmd_download}.get(
+    {"products": lambda: cmd_products(sys.argv[2]), "record": lambda: cmd_record(sys.argv[2], sys.argv[3]),
+     "layers": lambda: cmd_layers(sys.argv[2]), "submit": cmd_submit, "status": cmd_status, "download": cmd_download}.get(
         c, lambda: sys.exit(__doc__))()
