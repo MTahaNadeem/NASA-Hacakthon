@@ -41,23 +41,39 @@ def parse_power(path, y0, y1):
     return years, {"rain": r2(rain), "tmean": tmean, "heat_days": [[int(v) for v in r] for r in heat],
                    "frost_days": [[int(v) for v in r] for r in frost], "extreme_days": [[int(v) for v in r] for r in ext]}, p["PRECTOTCORR"]
 
+def _pick(vals, name):
+    """Case-insensitive lookup of a percentile key such as 'Q0.05' or 'mean'."""
+    for k, v in (vals or {}).items():
+        if str(k).lower() == name: return v
+    return None
+
 def parse_soilgrids(path):
-    layers = json.loads(Path(path).read_text())["properties"]["layers"]
-    soil = {}
+    """Return (soil, bands_ok). soil maps ph/soc/sand/silt/clay to {q05, mean, q95} (thickness-weighted topsoil).
+    bands_ok is False if any property lacked the 5th/95th percentiles (then q05 = q95 = mean). Empty soil = no usable values."""
+    layers = json.loads(Path(path).read_text()).get("properties", {}).get("layers", [])
+    soil, bands_ok = {}, True
     for layer in layers:
-        key = SOIL_PROPS.get(layer["name"])
+        key = SOIL_PROPS.get(layer.get("name"))
         if not key: continue
-        d_factor = layer["unit_measure"].get("d_factor", 1) or 1
-        acc = {"q05": 0.0, "mean": 0.0, "q95": 0.0}; wsum = 0
-        for depth in layer["depths"]:
-            w = DEPTH_WEIGHTS.get(depth["label"].replace(" ", ""), 0)
-            vals = depth["values"]
-            if w and all(vals.get(k) is not None for k in ("Q0.05", "mean", "Q0.95")):
-                acc["q05"] += w * vals["Q0.05"] / d_factor; acc["mean"] += w * vals["mean"] / d_factor
-                acc["q95"] += w * vals["Q0.95"] / d_factor; wsum += w
+        d_factor = (layer.get("unit_measure") or {}).get("d_factor") or 1
+        acc = {"q05": 0.0, "mean": 0.0, "q95": 0.0}; wsum = 0.0; full = True
+        for depth in layer.get("depths", []):
+            vals = depth.get("values") or {}
+            mean = _pick(vals, "mean")
+            if mean is None: continue
+            lo, hi = _pick(vals, "q0.05"), _pick(vals, "q0.95")
+            if lo is None or hi is None: lo = hi = mean; full = False
+            rng = depth.get("range") or {}
+            if rng.get("top_depth") is not None and rng.get("bottom_depth") is not None:
+                w = float(rng["bottom_depth"]) - float(rng["top_depth"])
+            else:
+                w = DEPTH_WEIGHTS.get(str(depth.get("label", "")).replace(" ", ""), 0)
+            if w <= 0: continue
+            acc["q05"] += w * lo / d_factor; acc["mean"] += w * mean / d_factor; acc["q95"] += w * hi / d_factor; wsum += w
         if wsum:
             soil[key] = {k: round(v / wsum, 2) for k, v in acc.items()}
-    return soil
+            bands_ok = bands_ok and full
+    return soil, bands_ok
 
 def monthly_clim_from_csv(path, col_hint, scale=1.0, min_valid=None):
     """Monthly mean climatology (12 values) from an AppEEARS point CSV (column containing col_hint)."""
@@ -95,7 +111,12 @@ def build(loc, raw_dir, out_dir):
            "resolution_note": "POWER ~0.5 deg (~50 km); MODIS 250 m; SMAP L4 9 km; IMERG 0.1 deg (~10 km); "
                               "SoilGrids 250 m. Results describe the surrounding area, not one field."}
     if (d / "soilgrids.json").exists():
-        rec["soil"] = parse_soilgrids(d / "soilgrids.json"); rec["soil_units"] = SOIL_UNITS; sources["soilgrids"] = "SoilGrids (ISRIC)"
+        soil, bands_ok = parse_soilgrids(d / "soilgrids.json")
+        if soil.get("ph") and soil.get("clay"):
+            rec["soil"] = soil; rec["soil_units"] = SOIL_UNITS; sources["soilgrids"] = "SoilGrids (ISRIC)"
+            if not bands_ok: gaps.append("SoilGrids percentile bands missing: soil uncertainty not shown.")
+        else:
+            gaps.append("SoilGrids missing: returned no usable values for this point, so soil fit and soil-carbon factors dropped.")
     else: gaps.append("SoilGrids missing: soil fit and soil-carbon factors dropped.")
     ap = Path(raw_dir) / "_appeears"
     if (ap / "modis_ndvi.csv").exists():

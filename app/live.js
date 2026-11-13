@@ -29,14 +29,17 @@
     return { rain: r2(rain), tmean: tmean, heat_days: heat, frost_days: frost, extreme_days: ext };
   }
 
+  function pick(vals, name) { for (var k in (vals || {})) if (String(k).toLowerCase() === name) return vals[k]; return null; }
   function parseSoil(json) {
     var soil = {};
-    json.properties.layers.forEach(function (layer) {
+    ((json.properties && json.properties.layers) || []).forEach(function (layer) {
       var key = PROPS[layer.name]; if (!key) return;
       var df = (layer.unit_measure && layer.unit_measure.d_factor) || 1, acc = { q05: 0, mean: 0, q95: 0 }, ws = 0;
-      layer.depths.forEach(function (d) {
-        var w = DEPTH_W[String(d.label).replace(/ /g, "")], v = d.values || {};
-        if (w && v["Q0.05"] != null && v.mean != null && v["Q0.95"] != null) { acc.q05 += w * v["Q0.05"] / df; acc.mean += w * v.mean / df; acc.q95 += w * v["Q0.95"] / df; ws += w; }
+      (layer.depths || []).forEach(function (d) {
+        var v = d.values || {}, mean = pick(v, "mean"); if (mean == null) return;
+        var lo = pick(v, "q0.05"), hi = pick(v, "q0.95"); if (lo == null || hi == null) { lo = hi = mean; }
+        var r = d.range || {}, w = (r.top_depth != null && r.bottom_depth != null) ? r.bottom_depth - r.top_depth : DEPTH_W[String(d.label).replace(/ /g, "")];
+        if (w > 0) { acc.q05 += w * lo / df; acc.mean += w * mean / df; acc.q95 += w * hi / df; ws += w; }
       });
       if (ws) soil[key] = { q05: Math.round(acc.q05 / ws * 100) / 100, mean: Math.round(acc.mean / ws * 100) / 100, q95: Math.round(acc.q95 / ws * 100) / 100 };
     });

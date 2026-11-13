@@ -219,7 +219,7 @@
     $("resname").textContent = locName();
     $("resmeta").innerHTML = state.loc ? "<bdi dir='ltr'>" + state.loc.lat.toFixed(2) + ", " + state.loc.lon.toFixed(2) + "</bdi>" : "";
     $("cov").innerHTML = SRC.map(function (k) {
-      var on = d.sources && d.sources[k] && d.sources[k] !== "synthetic";
+      var on = d.sources && d.sources[k] && d.sources[k] !== "synthetic" && (k !== "soilgrids" || (d.soil && d.soil.ph));
       return "<li class='" + (on ? "on" : "") + "' title='" + esc(t(on ? "cov.on" : "cov.off")) + "'>" + SRC_NAME[k] + "</li>";
     }).join("");
   }
@@ -259,7 +259,7 @@
       stat(Math.round(Scoring.pct(sorted, .1)) + "–" + Math.round(Scoring.pct(sorted, .9)) + " mm", t("pf.range")) +
       stat(mean(sum(d.climate.heat_days)).toFixed(0), t("pf.heat")) + stat(mean(sum(d.climate.frost_days)).toFixed(0), t("pf.frost")) + "</div>";
     h += "<div class='chart'><b>" + esc(t("pf.chart")) + "</b> <span class='mini'>" + esc(t("pf.chart.hint")) + "</span>" + rainChart(d) + "</div>";
-    if (d.soil) {
+    if (d.soil && d.soil.ph) {
       h += "<div class='chart'><b>" + esc(t("pf.soil")) + "</b> <span class='mini'>" + esc(t("pf.soil.hint")) + "</span><table><tr><th>" + esc(t("pf.prop")) + "</th><th>" + esc(t("pf.p5")) + "</th><th>" + esc(t("pf.mean2")) + "</th><th>" + esc(t("pf.p95")) + "</th></tr>";
       ["ph", "clay", "soc", "sand", "silt"].forEach(function (k) { var q = d.soil[k]; if (q) h += "<tr><td>" + esc(t("prop." + k)) + "</td><td>" + q.q05 + "</td><td>" + q.mean + "</td><td>" + q.q95 + "</td></tr>"; });
       h += "</table></div>";
@@ -333,7 +333,9 @@
     renderHead(); renderCalendar();
     var d = scenarioData(state.data, state.rainDelta), cfg = state.cfg;
     var out = Scoring.rankRotations(cfg, d, state.loc.rotation_ids, state.sl), h = "";
-    var gaps = (d.gaps || []).map(gapText).concat([t("gap.static1"), t("gap.static2")]);
+    var gaps = (d.gaps || []).map(gapText);
+    if (!(d.soil && d.soil.ph) && !(d.gaps || []).some(function (g) { return /^SoilGrids/.test(g); })) gaps.push(t("gap.soilmissing"));
+    gaps = gaps.concat([t("gap.static1"), t("gap.static2")]);
     out.results.forEach(function (r) {
       var rot = cfg.rotations[r.id], fb = Scoring.factorBreakdown(rot, cfg, d), x = insights(rot, r, d, fb), isCur = r.id === state.loc.current_rotation;
       h += "<article class='card" + (r.rank === 1 ? " top" : "") + "'><div class='head'><span class='rank'>" + r.rank + "</span><div><h3><bdi>" + esc(rotLabel(r.id)) + "</bdi></h3><div class='pills'>" +
