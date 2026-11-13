@@ -18,9 +18,17 @@ Hero case: wheat-wheat in Punjab (Faisalabad) vs. legume and oilseed rotations. 
 
 ## Run the app
 
+From the repo root, then open http://localhost:8000:
+
 ```bash
-python3 -m http.server 8000 --directory app   # then open http://localhost:8000
+python3 -m http.server 8000 --directory app   # Mac/Linux
 ```
+```powershell
+python -m http.server 8000 --directory app    # Windows PowerShell (python, not python3; or use: py -m http.server ...)
+```
+
+On Windows, use `python` instead of `python3` for every command below, and set variables with
+`$env:EARTHDATA_USER="..."` instead of `export`.
 
 ## Replace placeholders with real data
 
