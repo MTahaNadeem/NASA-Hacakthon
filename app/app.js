@@ -252,10 +252,12 @@
     out.results.forEach(function (r) {
       var rot = cfg.rotations[r.id], fb = Scoring.factorBreakdown(rot, cfg, d), x = risksAndFlags(rot, r, d, fb);
       var isCur = r.id === state.loc.current_rotation;
-      h += "<article class='card'><h3>#" + r.rank + " " + esc(rot.label) +
-        (isCur ? " <span class='pill cur'>current</span>" : "") + (r.noClearWinner ? " <span class='pill tie'>no clear winner vs. neighbours</span>" : "") + "</h3>" +
+      h += "<article class='card" + (r.rank === 1 ? " top" : "") + "'><div class='head'><span class='rank'>" + r.rank + "</span><div><h3>" + esc(rot.label) + "</h3><div class='pills'>" +
+        (isCur ? "<span class='pill cur'>current rotation</span>" : "") + (r.rank === 1 ? "<span class='pill cur'>top for your priorities</span>" : "") +
+        (r.noClearWinner ? "<span class='pill tie'>no clear winner vs. neighbours</span>" : "") + "</div></div>" +
+        "<div class='score'><b>" + f2(r.mean) + "</b><span>mean score</span></div></div>" +
         "<div class='bar' role='img' aria-label='Score range " + f2(r.low) + " to " + f2(r.high) + ", mean " + f2(r.mean) + "'><div class='rng' style='left:" + r.low * 100 + "%;width:" + Math.max(1, (r.high - r.low) * 100) + "%'></div><div class='tick' style='left:" + r.mean * 100 + "%'></div></div>" +
-        "<div class='axis'><span>0</span><span>score " + f2(r.low) + " - " + f2(r.high) + " (mean " + f2(r.mean) + ")</span><span>1</span></div>" +
+        "<div class='axis'><span>0</span><span>range " + f2(r.low) + " to " + f2(r.high) + " across years and soil uncertainty</span><span>1</span></div>" +
         "<details><summary>Evidence</summary><table><tr><th>Factor</th><th>Mean</th><th>Data</th></tr>" +
         Scoring.FACTORS.map(function (f) { return "<tr><td>" + esc(f.label) + "</td><td>" + f2(fb[f.id]) + "</td><td>" + esc(f.data) + "</td></tr>"; }).join("") + "</table></details>" +
         "<details><summary>Benefits and risks</summary><ul>" + x.benefits.map(function (t) { return "<li>" + esc(t) + "</li>"; }).join("") + x.risks.map(function (t) { return "<li class='flag'>Risk: " + esc(t) + "</li>"; }).join("") + "</ul></details>" +
@@ -285,9 +287,9 @@
 
   /* ---------- how scored ---------- */
   function renderHow() {
-    var h = "<p>Each rotation is scored 0-1 for every historical year on six rules. The sliders set how much each group counts: <code>S = sum(w x s)</code>, weights add up to 1. The range shown on each card is the 10th-90th percentile across years, widened by the 5th-95th percentile soil values. No machine learning is used.</p><table><tr><th>Rule</th><th>Data</th><th>Slider</th><th>How it is scored</th></tr>";
+    var h = "<p>Each rotation is scored 0-1 for every historical year on six rules. The sliders set how much each group counts: <code>S = sum(w x s)</code>, weights add up to 1. The range shown on each card is the 10th-90th percentile across years, widened by the 5th-95th percentile soil values. No machine learning is used.</p><div class='tablewrap'><table><tr><th>Rule</th><th>Data</th><th>Slider</th><th>How it is scored</th></tr>";
     Scoring.FACTORS.forEach(function (f) { h += "<tr><td>" + esc(f.label) + "</td><td>" + esc(f.data) + "</td><td>" + f.slider + "</td><td>" + esc(f.rule) + "</td></tr>"; });
-    h += "</table><p class='hint'>Crop parameters (water need, sensitive months, pH range, soil-carbon effect) are in <a href='rotations.json'>rotations.json</a> and are the team's rules of thumb, to be confirmed by an agronomist.</p>";
+    h += "</table></div><p class='hint'>Crop parameters (water need, sensitive months, pH range, soil-carbon effect) are in <a href='rotations.json'>rotations.json</a> and are the team's rules of thumb, to be confirmed by an agronomist.</p>";
     $("how").innerHTML = h;
   }
 
