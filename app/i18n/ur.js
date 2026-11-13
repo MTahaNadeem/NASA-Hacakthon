@@ -86,5 +86,9 @@ I18N.add("ur", {
 "st.gps.insecure":"مقام کے لیے محفوظ صفحہ درکار ہے (https یا localhost)۔",
 "st.gps.nosupport":"یہ براؤزر مقام کی سہولت کو سپورٹ نہیں کرتا۔",
 "loc.suggest.none":"کوئی مماثل جگہ نہیں ملی",
-"loc.suggest.aria":"جگہوں کی تجاویز"
+"loc.suggest.aria":"جگہوں کی تجاویز",
+"map.pin":"پن: {lat}, {lon}",
+"map.nopin":"پن لگانے کے لیے نقشے پر کلک کریں۔",
+"map.analyse":"اس پن کا ڈیٹا دکھائیں",
+"map.view":"نتائج دیکھیں"
 });

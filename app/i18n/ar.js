@@ -86,5 +86,9 @@ I18N.add("ar", {
 "st.gps.insecure":"يتطلب الموقع صفحة آمنة (https أو localhost).",
 "st.gps.nosupport":"هذا المتصفح لا يدعم تحديد الموقع.",
 "loc.suggest.none":"لا توجد أماكن مطابقة",
-"loc.suggest.aria":"اقتراحات الأماكن"
+"loc.suggest.aria":"اقتراحات الأماكن",
+"map.pin":"الدبوس: {lat}, {lon}",
+"map.nopin":"انقر على الخريطة لوضع دبوس.",
+"map.analyse":"اعرض بيانات هذا الدبوس",
+"map.view":"عرض النتائج"
 });

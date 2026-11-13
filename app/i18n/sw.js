@@ -86,5 +86,9 @@ I18N.add("sw", {
 "st.gps.insecure":"Eneo linahitaji ukurasa salama (https au localhost).",
 "st.gps.nosupport":"Kivinjari hiki hakiauni eneo.",
 "loc.suggest.none":"Hakuna maeneo yanayolingana",
-"loc.suggest.aria":"Mapendekezo ya maeneo"
+"loc.suggest.aria":"Mapendekezo ya maeneo",
+"map.pin":"Pini: {lat}, {lon}",
+"map.nopin":"Bofya ramani kuweka pini.",
+"map.analyse":"Onyesha data ya pini hii",
+"map.view":"Tazama matokeo"
 });

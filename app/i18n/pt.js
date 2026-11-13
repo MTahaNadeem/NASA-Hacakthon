@@ -86,5 +86,9 @@ I18N.add("pt", {
 "st.gps.insecure":"A localização exige uma página segura (https ou localhost).",
 "st.gps.nosupport":"Este navegador não oferece suporte à localização.",
 "loc.suggest.none":"Nenhum lugar correspondente",
-"loc.suggest.aria":"Sugestões de lugares"
+"loc.suggest.aria":"Sugestões de lugares",
+"map.pin":"Marcador: {lat}, {lon}",
+"map.nopin":"Clique no mapa para colocar um marcador.",
+"map.analyse":"Mostrar dados deste marcador",
+"map.view":"Ver resultados"
 });

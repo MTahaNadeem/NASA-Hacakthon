@@ -204,3 +204,16 @@ code{background:var(--surface2);padding:1px 6px;border-radius:6px;font-size:.88e
 .btn.gps:hover{background:var(--surface2)}
 .mini.strong{font-weight:700;color:var(--fg);margin-block-start:14px}.mini.nomt{margin-block-start:2px}
 @media(prefers-color-scheme:dark){.leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.9) saturate(.8)}}
+
+/* map bar under the map */
+.mapcard{display:flex;flex-direction:column}
+.mapbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;padding:12px 14px;border-block-start:1px solid var(--line);background:var(--surface)}
+.pinfo{display:flex;flex-direction:column;min-width:0;flex:1 1 240px;font-size:.88rem}
+.pinfo b{font-size:.9rem;direction:ltr;text-align:start}
+.pinfo span{color:var(--muted);overflow-wrap:anywhere}.pinfo span.err{color:var(--bad);font-weight:600}
+.mapbtns{display:flex;gap:8px;flex-wrap:wrap}
+.mapbtns .btn[disabled]{opacity:.55;cursor:progress}
+.pin span{cursor:grab}
+
+[hidden]{display:none!important}
+.mapwrap{position:relative}

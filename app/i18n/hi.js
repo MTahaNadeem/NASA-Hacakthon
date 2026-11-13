@@ -86,5 +86,9 @@ I18N.add("hi", {
 "st.gps.insecure":"स्थान के लिए सुरक्षित पेज चाहिए (https या localhost)।",
 "st.gps.nosupport":"यह ब्राउज़र स्थान की सुविधा का समर्थन नहीं करता।",
 "loc.suggest.none":"कोई मेल खाती जगह नहीं मिली",
-"loc.suggest.aria":"जगह के सुझाव"
+"loc.suggest.aria":"जगह के सुझाव",
+"map.pin":"पिन: {lat}, {lon}",
+"map.nopin":"पिन लगाने के लिए नक्शे पर क्लिक करें।",
+"map.analyse":"इस पिन का डेटा दिखाएँ",
+"map.view":"नतीजे देखें"
 });

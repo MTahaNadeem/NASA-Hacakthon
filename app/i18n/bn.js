@@ -86,5 +86,9 @@ I18N.add("bn", {
 "st.gps.insecure":"অবস্থানের জন্য নিরাপদ পেজ লাগবে (https বা localhost)।",
 "st.gps.nosupport":"এই ব্রাউজার অবস্থান সুবিধা সমর্থন করে না।",
 "loc.suggest.none":"মিল আছে এমন কোনো জায়গা নেই",
-"loc.suggest.aria":"জায়গার পরামর্শ"
+"loc.suggest.aria":"জায়গার পরামর্শ",
+"map.pin":"পিন: {lat}, {lon}",
+"map.nopin":"পিন বসাতে মানচিত্রে ক্লিক করুন।",
+"map.analyse":"এই পিনের ডেটা দেখান",
+"map.view":"ফলাফল দেখুন"
 });

@@ -5,7 +5,7 @@
   var t = I18N.t;
   var SRC = ["power", "soilgrids", "modis", "smap", "imerg"], SRC_NAME = { power: "NASA POWER", soilgrids: "SoilGrids", modis: "MODIS", smap: "SMAP", imerg: "GPM IMERG" };
   var state = { cfgRaw: null, cfg: null, index: [], loc: null, data: null, sl: { water: .5, income: .5, soil: .5 }, rainDelta: 0,
-    map: null, markers: {}, customMarker: null, loadToken: 0, tab: "rot", status: null, places: [] };
+    map: null, markers: {}, customMarker: null, pin: null, loading: false, loadToken: 0, tab: "rot", status: null, places: [] };
   var $ = function (id) { return document.getElementById(id); };
   var mean = Scoring.mean;
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
@@ -45,8 +45,17 @@
   /* ---------- status ---------- */
   function setStatus(key, params, isErr) { state.status = key ? { key: key, params: params, err: !!isErr } : null; renderStatus(); }
   function renderStatus() {
-    var el = $("status"), s = state.status; el.className = "status" + (s && s.err ? " err" : "");
-    el.textContent = s ? t(s.key, s.params) : "";
+    var el = $("status"), s = state.status, txt = s ? t(s.key, s.params) : ""; el.className = "status" + (s && s.err ? " err" : "");
+    el.textContent = txt;
+    var ms = $("mapstatus"); ms.className = s && s.err ? "err" : ""; ms.textContent = txt || (state.pin ? "" : t("map.nopin"));
+    renderMapBar();
+  }
+
+  function renderMapBar() {
+    var pin = state.pin;
+    $("pincoords").textContent = pin ? t("map.pin", { lat: pin.lat.toFixed(4), lon: pin.lon.toFixed(4) }) : "";
+    $("analyse").disabled = !pin || state.loading;
+    $("viewres").hidden = !state.data || state.loading;
   }
 
   /* ---------- static text ---------- */
@@ -118,6 +127,29 @@
     });
   }
 
+  // One draggable pin marks the chosen point. It is moved by clicks, drags, search, quick picks and GPS.
+  function placePin(lat, lon, recenter) {
+    state.pin = { lat: lat, lon: lon };
+    if (state.map) {
+      if (state.customMarker) state.customMarker.setLatLng([lat, lon]);
+      else {
+        state.customMarker = L.marker([lat, lon], { icon: pinIcon(), draggable: true, zIndexOffset: 1000 }).addTo(state.map);
+        state.customMarker.on("dragend", function () { var ll = state.customMarker.getLatLng(); loadCustom(ll.lat, ll.lng, { fromMap: true }); });
+      }
+      if (recenter) state.map.setView([lat, lon], Math.max(state.map.getZoom(), 5));
+    }
+    renderMapBar();
+  }
+  // Quick-pick markers would swallow clicks when you zoom in close, so hide them there.
+  function syncMarkers() {
+    if (!state.map) return;
+    var show = state.map.getZoom() < 9;
+    state.places.forEach(function (p) {
+      var m = state.markers[p.id]; if (!m) return;
+      if (show && !state.map.hasLayer(m)) m.addTo(state.map); else if (!show && state.map.hasLayer(m)) state.map.removeLayer(m);
+    });
+  }
+
   function pinIcon() { return L.divIcon({ className: "pin", html: "<span></span>", iconSize: [22, 22], iconAnchor: [11, 22] }); }
   // OpenStreetMap standard tiles need no API key (CARTO's free tiles now do). Dark mode is handled with a CSS filter.
   var TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png", TILE_ATTR = "&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors";
@@ -126,7 +158,8 @@
     state.map = L.map("map", { worldCopyJump: true }).setView([25, 50], 2);
     L.tileLayer(TILES, { maxZoom: 18, attribution: TILE_ATTR }).addTo(state.map);
     state.places.forEach(function (p) { state.markers[p.id] = L.marker([p.lat, p.lon], { icon: pinIcon() }).addTo(state.map).on("click", function () { selectPlace(p); }); });
-    state.map.on("click", function (e) { loadCustom(e.latlng.lat, e.latlng.lng); });
+    state.map.on("click", function (e) { loadCustom(e.latlng.lat, e.latlng.lng, { fromMap: true }); });
+    state.map.on("zoomend", syncMarkers);
     renderMapTips();
   }
   function renderMapTips() {
@@ -160,10 +193,8 @@
       var l = state.index.filter(function (x) { return x.id === id; })[0];
       state.loadToken++; state.data = d; state.loc = Object.assign({}, l, { placeId: id });
       state.cfg = effectiveCfg(d.lat); $("presetrow").hidden = true; setStatus(null);
-      if (state.customMarker && state.map) { state.map.removeLayer(state.customMarker); state.customMarker = null; }
-      markPressed(id);
-      if (state.map) state.map.setView([d.lat, d.lon], 5);
-      renderBanner(); renderProfile(); renderAll();
+      markPressed(id); placePin(d.lat, d.lon, true);
+      renderBanner(); renderProfile(); renderAll(); renderMapBar();
     });
   }
 
@@ -180,21 +211,19 @@
     lon = ((lon + 540) % 360) - 180;
     var token = ++state.loadToken;
     markPressed(opts.placeId || null);
-    if (state.map) {
-      if (state.customMarker) state.customMarker.setLatLng([lat, lon]); else state.customMarker = L.marker([lat, lon], { icon: pinIcon() }).addTo(state.map);
-      state.map.setView([lat, lon], Math.max(state.map.getZoom(), 5));
-    }
+    placePin(lat, lon, !opts.fromMap);   // clicking or dragging must not move the map under the user's cursor
     $("lat").value = lat.toFixed(2); $("lon").value = lon.toFixed(2);
-    setStatus("st.fetchPower");
+    state.loading = true; setStatus("st.fetchPower");
     if (!state.data) $("cards").innerHTML = "<p class='mini'>" + esc(t("st.fetchPower")) + "</p>";
     LiveData.fetchLocation(lat, lon, function (key) { if (token === state.loadToken) setStatus(key); }).then(function (d) {
       if (token !== state.loadToken) return;
-      state.data = d; state.cfg = effectiveCfg(d.lat);
+      state.loading = false; state.data = d; state.cfg = effectiveCfg(d.lat);
       var key = opts.preset || LiveData.suggestPreset(d); $("preset").value = key; $("presetrow").hidden = false;
       state.loc = { id: "custom", placeId: opts.placeId || null, label: opts.label || null, mine: !!opts.mine, name: "", lat: d.lat, lon: d.lon };
       renderBanner(); setStatus("st.loaded", { name: locName() }); renderProfile(); applyPreset(key);
     }).catch(function (e) {
       if (token !== state.loadToken) return;
+      state.loading = false;
       if (!state.data) $("cards").innerHTML = "";
       setStatus("st.err", { msg: e.message === "NO_LAND" ? t("st.noland") : e.message }, true);
     });
@@ -271,6 +300,9 @@
     $("preset").addEventListener("change", function () { applyPreset($("preset").value); });
     $("coordform").addEventListener("submit", function (e) { e.preventDefault(); loadCustom(parseFloat($("lat").value), parseFloat($("lon").value)); });
     bindSearch(); bindGps();
+    $("analyse").addEventListener("click", function () { if (state.pin) loadCustom(state.pin.lat, state.pin.lon, { fromMap: true }); });
+    $("viewres").addEventListener("click", function () { document.querySelector(".results").scrollIntoView({ behavior: "smooth", block: "start" }); });
+    renderMapBar();
     ["water", "income", "soil"].forEach(function (k) {
       var el = $("sl-" + k);
       el.addEventListener("input", function () { state.sl[k] = el.value / 100; $("o-" + k).textContent = el.value + "%"; renderAll(); });

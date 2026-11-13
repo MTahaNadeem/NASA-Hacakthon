@@ -86,5 +86,9 @@ I18N.add("zh", {
 "st.gps.insecure":"定位需要安全页面（https或localhost）。",
 "st.gps.nosupport":"此浏览器不支持定位。",
 "loc.suggest.none":"没有匹配的地点",
-"loc.suggest.aria":"地点建议"
+"loc.suggest.aria":"地点建议",
+"map.pin":"图钉：{lat}，{lon}",
+"map.nopin":"点击地图放置图钉。",
+"map.analyse":"显示此图钉的数据",
+"map.view":"查看结果"
 });

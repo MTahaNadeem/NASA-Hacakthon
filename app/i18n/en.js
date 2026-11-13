@@ -86,5 +86,9 @@ I18N.add("en", {
 "st.gps.insecure":"Location needs a secure page (https or localhost).",
 "st.gps.nosupport":"This browser does not support location.",
 "loc.suggest.none":"No matching places",
-"loc.suggest.aria":"Place suggestions"
+"loc.suggest.aria":"Place suggestions",
+"map.pin":"Pin: {lat}, {lon}",
+"map.nopin":"Click the map to drop a pin.",
+"map.analyse":"Show data for this pin",
+"map.view":"View results"
 });

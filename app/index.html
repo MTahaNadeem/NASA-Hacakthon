@@ -95,7 +95,11 @@
       </aside>
 
       <div class="main">
-        <div class="mapcard"><div id="map" aria-label="Map"></div><p class="maphint" id="maphint" data-i18n="loc.map.hint"></p></div>
+        <div class="mapcard"><div class="mapwrap"><div id="map" aria-label="Map"></div><p class="maphint" id="maphint" data-i18n="loc.map.hint"></p></div>
+          <div class="mapbar">
+            <div class="pinfo"><b id="pincoords"></b><span id="mapstatus" role="status"></span></div>
+            <div class="mapbtns"><button type="button" id="analyse" class="btn primary sm" data-i18n="map.analyse">Show data for this pin</button><button type="button" id="viewres" class="btn sm" data-i18n="map.view" hidden>View results</button></div>
+          </div></div>
 
         <section class="results">
           <div class="reshead">
