@@ -24,7 +24,7 @@
     each("T2M", function (y, m, v) { if (v > -990) { ts[y][m] += v; tc[y][m]++; } });
     each("T2M_MAX", function (y, m, v) { if (v > -990 && v >= HEAT_C) heat[y][m]++; });
     each("T2M_MIN", function (y, m, v) { if (v > -990 && v <= FROST_C) frost[y][m]++; });
-    if (!total || validRain / total < 0.9) throw new Error("NASA POWER has no usable land climate data for this point (is it over the ocean?)");
+    if (!total || validRain / total < 0.9) throw new Error("NO_LAND");
     var tmean = ts.map(function (r, y) { return r.map(function (s, m) { return tc[y][m] ? Math.round(s / tc[y][m] * 10) / 10 : null; }); });
     return { rain: r2(rain), tmean: tmean, heat_days: heat, frost_days: frost, extreme_days: ext };
   }
@@ -60,9 +60,9 @@
   function fetchLocation(lat, lon, onStatus) {
     onStatus = onStatus || function () {};
     lat = Math.round(lat * 100) / 100; lon = Math.round(lon * 100) / 100;
-    onStatus("Fetching NASA POWER climate history (20 years, can take 10-30 s)...");
+    onStatus("st.fetchPower");
     return fetchPower(lat, lon).then(function (climate) {
-      onStatus("Fetching SoilGrids soil data...");
+      onStatus("st.fetchSoil");
       return fetchSoil(lat, lon).then(function (soil) { return [climate, soil, null]; }, function (e) { return [climate, null, e.message]; });
     }).then(function (r) {
       var years = []; for (var y = Y0; y <= Y1; y++) years.push(y);

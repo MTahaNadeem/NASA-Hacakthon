@@ -8,7 +8,7 @@ assert.strictEqual(c.rain.length, 20); assert.strictEqual(c.extreme_days[0][0], 
 assert.strictEqual(c.heat_days[0][6], 1); assert.strictEqual(c.frost_days[0][0], 1);
 // ocean / no data is rejected, not scored
 const bad = { properties: { parameter: { PRECTOTCORR: Object.fromEntries(Object.keys(days).map(k => [k, -999])), T2M: days, T2M_MAX: days, T2M_MIN: days } } };
-assert.throws(() => L.parsePower(bad), /no usable land climate data/);
+assert.throws(() => L.parsePower(bad), /NO_LAND/);
 // soil percentiles and d_factor
 const s = L.parseSoil({ properties: { layers: [{ name: "phh2o", unit_measure: { d_factor: 10 }, depths: [{ label: "0-5cm", values: { "Q0.05": 70, mean: 75, "Q0.95": 80 } }] }, { name: "other", depths: [] }] } });
 assert.deepStrictEqual(s, { ph: { q05: 7, mean: 7.5, q95: 8 } });

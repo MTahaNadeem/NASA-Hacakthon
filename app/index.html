@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,123 +7,148 @@
 <meta name="description" content="Compare crop rotations for any field location using NASA data, with the evidence, uncertainty and data gaps shown.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<a class="skip" href="#explore" data-i18n="nav.start">Open the tool</a>
 
-<nav class="nav" aria-label="Main">
-  <a class="brand" href="#top"><span class="logo" aria-hidden="true"></span>Rotation Explorer</a>
-  <div class="links"><a href="#steps">How it works</a><a href="#explore">Explore</a><a href="#scoring">Scoring</a><a href="#data">Data</a></div>
-  <a class="btn small" href="#explore">Start</a>
-</nav>
-
-<header class="hero" id="top">
-  <div class="hero-bg" aria-hidden="true"></div>
-  <div class="wrap hero-in">
-    <p class="eyebrow">NASA Space Apps 2026 &middot; Adapting Farms with NASA Data</p>
-    <h1>See the evidence <em>before</em> you change the rotation.</h1>
-    <p class="lede">Pick any place on Earth. Rotation Explorer builds a field profile from NASA satellite data, compares crop rotations against your priorities, and shows what it knows, how sure it is, and what it cannot see.</p>
-    <div class="cta"><a class="btn" href="#explore">Explore a location</a><a class="btn ghost" href="#steps">How it works</a></div>
-    <ul class="chips">
-      <li>NASA POWER &middot; MODIS &middot; SMAP &middot; GPM</li><li>Scores shown as ranges</li><li>Data gaps always listed</li><li>No black-box AI</li>
-    </ul>
+<header class="nav">
+  <div class="nav-in">
+    <a class="brand" href="#top"><span class="logo" aria-hidden="true"></span><span>Rotation Explorer</span></a>
+    <nav class="links" aria-label="Main">
+      <a href="#explore" data-i18n="nav.explore">Explore</a>
+      <a href="#steps" data-i18n="nav.how">How it works</a>
+      <a href="#scoring" data-i18n="nav.scoring">Scoring</a>
+      <a href="#data" data-i18n="nav.data">Data</a>
+    </nav>
+    <label class="langsel">
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+      <span class="sr" data-i18n="lang.label">Language</span>
+      <select id="lang"></select>
+    </label>
   </div>
 </header>
 
-<section class="strip" aria-label="At a glance">
-  <div class="wrap strip-in">
-    <div><b>20 years</b><span>of climate history per location</span></div>
-    <div><b>6 rules</b><span>every one visible and sourced</span></div>
-    <div><b>Anywhere</b><span>click the map, search or type coordinates</span></div>
-    <div><b>Honest</b><span>tells you when to ask a local agronomist</span></div>
+<section class="hero" id="top">
+  <div class="hero-in">
+    <div class="hero-copy">
+      <p class="eyebrow"><span class="dot"></span><span data-i18n="hero.eyebrow">NASA Space Apps Challenge 2026</span></p>
+      <h1><span data-i18n="hero.t1">See the evidence</span> <em data-i18n="hero.t2">before</em> <span data-i18n="hero.t3">you change the rotation.</span></h1>
+      <p class="lede" data-i18n="hero.lede"></p>
+      <div class="cta"><a class="btn primary" href="#explore" data-i18n="hero.cta1">Explore a location</a><a class="btn" href="#steps" data-i18n="hero.cta2">How it works</a></div>
+    </div>
+    <div class="art" id="art" aria-hidden="true"></div>
   </div>
 </section>
 
-<div id="banner" class="banner" hidden></div>
+<section class="trust" aria-label="Data sources">
+  <div class="trust-in">
+    <span class="trust-l" data-i18n="trust.label">Built on open data</span>
+    <ul><li>NASA POWER</li><li>MODIS</li><li>SMAP</li><li>GPM IMERG</li><li>SoilGrids</li></ul>
+  </div>
+</section>
 
-<section class="sec" id="steps">
+<div id="banner" class="banner" role="alert" hidden></div>
+
+<main>
+<section class="sec" id="explore">
   <div class="wrap">
-    <p class="kicker">How it works</p>
-    <h2>From a pin on the map to a clear comparison</h2>
+    <header class="sec-head"><p class="kicker" data-i18n="ex.kicker">Explore</p><h2 data-i18n="ex.title">Compare rotations for any field</h2><p class="sub" data-i18n="ex.sub"></p></header>
+
+    <div class="workspace">
+      <aside class="side" aria-label="Controls">
+        <section class="cardx">
+          <h3 data-i18n="loc.title">Location</h3>
+          <form id="searchform" class="field"><input id="q" type="search" data-i18n-ph="loc.search.ph" aria-label="Search" placeholder="Search a place"><button type="submit" class="btn primary sm" data-i18n="loc.search.btn">Search</button></form>
+          <form id="coordform" class="field two"><input id="lat" type="number" step="any" min="-90" max="90" data-i18n-ph="loc.lat" placeholder="Latitude" aria-label="Latitude"><input id="lon" type="number" step="any" min="-180" max="180" data-i18n-ph="loc.lon" placeholder="Longitude" aria-label="Longitude"><button type="submit" class="btn sm" data-i18n="loc.go">Go</button></form>
+          <p class="mini" data-i18n="loc.demos">Demo locations (all NASA sources)</p>
+          <div id="loclist" role="list"></div>
+          <p id="status" class="status" role="status"></p>
+          <div id="presetrow" hidden>
+            <label class="lbl" for="preset" data-i18n="loc.preset">Rotation set to compare</label>
+            <select id="preset"></select>
+            <p class="mini" data-i18n="loc.preset.hint"></p>
+          </div>
+        </section>
+
+        <section class="cardx">
+          <h3 data-i18n="pri.title">Your priorities</h3>
+          <div class="sliders" id="sliders">
+            <label><span data-i18n="pri.water">Water saving</span><output id="o-water"></output><input type="range" id="sl-water" min="0" max="100" value="50"></label>
+            <label><span data-i18n="pri.income">Income (yield risk)</span><output id="o-income"></output><input type="range" id="sl-income" min="0" max="100" value="50"></label>
+            <label><span data-i18n="pri.soil">Soil building</span><output id="o-soil"></output><input type="range" id="sl-soil" min="0" max="100" value="50"></label>
+          </div>
+          <p class="mini" data-i18n="pri.hint"></p>
+        </section>
+
+        <section class="cardx">
+          <h3 data-i18n="sc.title">What if it gets drier?</h3>
+          <label class="sc"><span data-i18n="sc.rain">Rainfall change</span><output id="o-rain"></output><input type="range" id="sl-rain" min="-40" max="20" value="0" step="5"></label>
+          <p id="flip" class="flip"></p>
+          <p class="mini" data-i18n="sc.note"></p>
+        </section>
+      </aside>
+
+      <div class="main">
+        <div class="mapcard"><div id="map" aria-label="Map"></div><p class="maphint" id="maphint" data-i18n="loc.map.hint"></p></div>
+
+        <section class="results">
+          <div class="reshead">
+            <div><h3 id="resname"></h3><p class="mini" id="resmeta"></p></div>
+            <ul class="cov" id="cov" aria-label="Data used"></ul>
+          </div>
+          <div class="tabs" role="tablist">
+            <button role="tab" id="t-rot" aria-selected="true" aria-controls="p-rot" data-tab="rot" data-i18n="tab.rot">Rotations</button>
+            <button role="tab" id="t-profile" aria-selected="false" aria-controls="p-profile" data-tab="profile" data-i18n="tab.profile">Field profile</button>
+            <button role="tab" id="t-cal" aria-selected="false" aria-controls="p-cal" data-tab="cal" data-i18n="tab.cal">Calendar</button>
+          </div>
+          <div class="panel" id="p-rot" role="tabpanel" aria-labelledby="t-rot"><p class="mini" data-i18n="cards.hint"></p><div id="cards"></div></div>
+          <div class="panel" id="p-profile" role="tabpanel" aria-labelledby="t-profile" hidden><div id="profile"></div></div>
+          <div class="panel" id="p-cal" role="tabpanel" aria-labelledby="t-cal" hidden><p class="mini" data-i18n="cal.hint"></p><div id="calendar"></div></div>
+        </section>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec alt" id="steps">
+  <div class="wrap">
+    <header class="sec-head"><p class="kicker" data-i18n="how.kicker">How it works</p><h2 data-i18n="how.title"></h2></header>
     <ol class="steps">
-      <li><span class="n">1</span><h3>Pick a place</h3><p>Click the map, search a town, or enter coordinates.</p></li>
-      <li><span class="n">2</span><h3>See the field profile</h3><p>Rainfall, heat and frost days, soil, and months when fields sit bare.</p></li>
-      <li><span class="n">3</span><h3>Compare rotations</h3><p>At least three, always including the current one. Sliders re-rank them live.</p></li>
-      <li><span class="n">4</span><h3>Read the evidence</h3><p>Ranges, risks, data gaps, and what to confirm with a local expert.</p></li>
+      <li><span class="n">1</span><h3 data-i18n="how.1.t"></h3><p data-i18n="how.1.d"></p></li>
+      <li><span class="n">2</span><h3 data-i18n="how.2.t"></h3><p data-i18n="how.2.d"></p></li>
+      <li><span class="n">3</span><h3 data-i18n="how.3.t"></h3><p data-i18n="how.3.d"></p></li>
+      <li><span class="n">4</span><h3 data-i18n="how.4.t"></h3><p data-i18n="how.4.d"></p></li>
     </ol>
-  </div>
-</section>
-
-<section class="sec tint" id="explore">
-  <div class="wrap">
-    <p class="kicker">Explore</p>
-    <h2>Choose a location</h2>
-    <p class="sub">Click the map, search for a place, or type coordinates. Cached demo locations use every NASA source; other points use live NASA POWER and SoilGrids data.</p>
-
-    <div class="panel">
-      <div class="forms">
-        <form id="searchform" class="search"><input id="q" type="search" placeholder="Search a place, e.g. Multan, Nairobi, Iowa" aria-label="Search a place"><button type="submit" class="btn small">Search</button></form>
-        <form id="coordform" class="search"><input id="lat" type="number" step="any" min="-90" max="90" placeholder="Latitude" aria-label="Latitude"><input id="lon" type="number" step="any" min="-180" max="180" placeholder="Longitude" aria-label="Longitude"><button type="submit" class="btn small">Go</button></form>
-      </div>
-      <div class="locwrap"><div id="map" aria-label="Map: click to choose a location"></div><div id="loclist" role="list"></div></div>
-      <p id="status" class="hint" role="status"></p>
-      <div id="presetrow" hidden><label>Rotation set to compare <select id="preset"></select></label>
-        <p class="hint">A starting suggestion from the climate. Switch it if it does not match what is grown locally. Sowing dates are templates and vary locally.</p></div>
-    </div>
-
-    <h3 class="blk">Field profile</h3>
-    <div id="profile"></div>
-
-    <h3 class="blk">Vulnerability windows</h3>
-    <div id="calendar"></div>
-
-    <h3 class="blk">Compare rotations</h3>
-    <div class="panel">
-      <div class="sliders" id="sliders">
-        <label><span>Water saving</span><output id="o-water"></output><input type="range" id="sl-water" min="0" max="100" value="50"></label>
-        <label><span>Income (yield risk)</span><output id="o-income"></output><input type="range" id="sl-income" min="0" max="100" value="50"></label>
-        <label><span>Soil building</span><output id="o-soil"></output><input type="range" id="sl-soil" min="0" max="100" value="50"></label>
-      </div>
-      <p class="hint">Scores run 0 to 1 (higher is better). Each bar is a range across about 20 years and soil uncertainty, not one number. Overlapping bars mean there is no clear winner.</p>
-    </div>
-    <div id="cards"></div>
-
-    <h3 class="blk">What if it gets drier?</h3>
-    <div class="panel">
-      <label class="sc"><span>Rainfall change</span><output id="o-rain"></output><input type="range" id="sl-rain" min="-40" max="20" value="0" step="5"></label>
-      <p id="flip" class="flip"></p>
-      <p class="hint">Only rainfall is changed. Temperature scenarios are not modelled because the cache holds monthly heat-day counts, not daily temperatures.</p>
-    </div>
   </div>
 </section>
 
 <section class="sec" id="scoring">
   <div class="wrap">
-    <p class="kicker">Scoring</p>
-    <h2>How was this scored?</h2>
+    <header class="sec-head"><p class="kicker" data-i18n="sc2.kicker">Scoring</p><h2 data-i18n="sc2.title">How was this scored?</h2><p class="sub" data-i18n="sc2.intro"></p></header>
     <div id="how"></div>
   </div>
 </section>
 
-<section class="sec tint" id="data">
+<section class="sec alt" id="data">
   <div class="wrap">
-    <p class="kicker">Data &amp; credits</p>
-    <h2>Built on NASA data, honest about its limits</h2>
+    <header class="sec-head"><p class="kicker" data-i18n="data.kicker">Data and credits</p><h2 data-i18n="data.title"></h2></header>
     <div class="cols">
-      <div class="card-s"><h3>NASA datasets</h3><ul><li><b>POWER</b> daily rainfall and temperature, 1981 to present</li><li><b>MODIS MOD13Q1</b> NDVI via AppEEARS, for bare-field windows</li><li><b>SMAP L4</b> root-zone soil moisture, from 2015</li><li><b>GPM IMERG</b> extreme-rain days and rainfall cross-check</li></ul></div>
-      <div class="card-s"><h3>Other data</h3><ul><li><b>SoilGrids</b> (ISRIC, not NASA) pH, texture and organic carbon with 5th to 95th percentile bands</li></ul><h3>Limits</h3><ul><li>Results describe the surrounding area, not one field</li><li>Crop rules are rules of thumb, not measurements</li><li>Irrigation, pests and prices are not in the data</li></ul></div>
-      <div class="card-s"><h3>Not a replacement</h3><p>This tool shows its working so you can discuss a change with a local agronomist. It does not replace one.</p></div>
+      <div class="cardx"><h3 data-i18n="data.nasa">NASA datasets</h3><ul><li data-i18n="data.nasa.1"></li><li data-i18n="data.nasa.2"></li><li data-i18n="data.nasa.3"></li><li data-i18n="data.nasa.4"></li></ul></div>
+      <div class="cardx"><h3 data-i18n="data.other">Other data</h3><ul><li data-i18n="data.other.1"></li></ul><h3 class="gap" data-i18n="data.limits">Limits</h3><ul><li data-i18n="data.limits.1"></li><li data-i18n="data.limits.2"></li><li data-i18n="data.limits.3"></li></ul></div>
+      <div class="cardx"><h3 data-i18n="data.not">Not a replacement</h3><p data-i18n="data.not.d"></p></div>
     </div>
   </div>
 </section>
+</main>
 
-<footer class="foot">
-  <div class="wrap"><b>Rotation Explorer</b> &middot; NASA Space Apps Challenge 2026 &middot; Data: NASA POWER, MODIS, SMAP, GPM IMERG; SoilGrids (ISRIC). AI tools (Claude) helped write the code; see the project README for the full disclosure.</div>
-</footer>
+<footer class="foot"><div class="wrap" data-i18n="foot.text"></div></footer>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="i18n.js"></script>
+<script src="i18n/en.js"></script>
 <script src="scoring.js"></script>
 <script src="live.js"></script>
 <script src="app.js"></script>

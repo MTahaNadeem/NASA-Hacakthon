@@ -44,7 +44,7 @@ python pipeline/fetch_imerg.py                    # optional; POWER is the fallb
 python pipeline/appeears.py status                # repeat until done
 python pipeline/appeears.py download
 python pipeline/build_cache.py                    # writes app/data/*.json (synthetic: false)
-node tests/scoring.test.js && node tests/live.test.js && python tests/test_build_cache.py
+node tests/scoring.test.js && node tests/live.test.js && node tests/i18n.test.js && python tests/test_build_cache.py
 ```
 Missing sources become entries in each location's `gaps` list, and the dependent scoring factors are dropped, never faked.
 
@@ -60,6 +60,17 @@ one from the climate. Crop calendars are Northern Hemisphere templates, shifted 
 sandbox had no network. If POWER or SoilGrids block browser (CORS) requests or are slow, the app shows an error and
 the cached demo locations still work. Test it once in your browser before relying on it in the demo. For the
 submission video, use a cached demo location so the demo never depends on a live call.
+
+## Languages
+
+The language switcher (top right) offers English, اردو (Urdu), हिन्दी (Hindi), العربية (Arabic), বাংলা (Bengali),
+Español, Français, Português, Kiswahili and 中文. Urdu and Arabic switch the whole layout to right-to-left.
+The choice is remembered, and `?lang=ar` in the URL forces a language.
+
+**The translations were written by an AI and have not been reviewed by native speakers.** Have a fluent speaker
+check at least Urdu (the hero case) before the submission, especially agronomy terms. To add a language: copy
+`app/i18n/en.js` to `app/i18n/<code>.js`, translate the values, add it to `LANGS` in `app/i18n.js`, then run
+`node tests/i18n.test.js`, which checks that every key and `{placeholder}` is present.
 
 ## Deploy
 
