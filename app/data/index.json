@@ -12,7 +12,7 @@
    "wheat_chickpea",
    "wheat_mustard"
   ],
-  "synthetic": true
+  "synthetic": false
  },
  {
   "id": "ames_iowa",
@@ -26,6 +26,6 @@
    "corn_soy",
    "corn_soy_oats"
   ],
-  "synthetic": true
+  "synthetic": false
  }
 ]
