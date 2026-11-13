@@ -6,6 +6,7 @@ Needs a free NASA Earthdata Login:  export EARTHDATA_USER=... EARTHDATA_PASS=...
   python pipeline/appeears.py record modis_ndvi <task_id>   # save a task id submitted earlier
   python pipeline/appeears.py submit                 # one task per product, all locations as points
   python pipeline/appeears.py status                 # check queued tasks
+  python pipeline/appeears.py wait [minutes]         # poll until all tasks are done
   python pipeline/appeears.py download               # fetch finished CSVs into pipeline/raw/_appeears/
 
 UNTESTED from the build sandbox (no network). Product/layer names below follow AppEEARS docs but
@@ -39,18 +40,26 @@ def cmd_products(word):
 
 def cmd_record(name, task_id):
     tasks = json.loads(STATE.read_text()) if STATE.exists() else {}
-    tasks[name] = task_id; STATE.parent.mkdir(parents=True, exist_ok=True); STATE.write_text(json.dumps(tasks, indent=1)); print("recorded", name, task_id)
+    tasks[name] = {"task_id": task_id, "ids": _ids()}; STATE.parent.mkdir(parents=True, exist_ok=True); STATE.write_text(json.dumps(tasks, indent=1)); print("recorded", name, task_id)
 
 def cmd_layers(product):
     r = requests.get(f"{API}/product/{product}", timeout=60); r.raise_for_status()
     print("\n".join(sorted(r.json().keys())))
 
+def _ids(): return sorted(l["id"] for l in CFG["locations"])
+def _tid(v): return v["task_id"] if isinstance(v, dict) else v
+
 def cmd_submit():
+    """Submit one task per product covering EVERY location. A task already submitted for the same set of places is kept;
+    if the places changed since (e.g. new quick picks), it is submitted again."""
     h = token(); tasks = json.loads(STATE.read_text()) if STATE.exists() else {}
     y1 = CFG["period"]["end_year"]
     coords = [{"id": l["id"], "latitude": l["lat"], "longitude": l["lon"], "category": "field"} for l in CFG["locations"]]
     for name, p in PRODUCTS.items():
-        if name in tasks: print("already submitted", name, tasks[name]); continue
+        old = tasks.get(name)
+        if isinstance(old, dict) and old.get("ids") == _ids():
+            print("already submitted for these places:", name, old["task_id"]); continue
+        if old: print("places changed since", name, "was submitted: submitting again")
         y0 = p.get("y0") or CFG["period"]["start_year"]
         body = {"task_type": "point", "task_name": f"rotation-explorer-{name}",
                 "params": {"dates": [{"startDate": f"01-01-{y0}", "endDate": f"12-31-{y1}"}],
@@ -58,18 +67,34 @@ def cmd_submit():
                            "coordinates": coords}}
         r = requests.post(f"{API}/task", json=body, headers=h, timeout=120)
         if not r.ok: print("FAILED", name, r.status_code, r.text[:500]); continue
-        tasks[name] = r.json()["task_id"]; print("submitted", name, tasks[name])
+        tasks[name] = {"task_id": r.json()["task_id"], "ids": _ids()}; print("submitted", name, tasks[name]["task_id"])
         STATE.parent.mkdir(parents=True, exist_ok=True); STATE.write_text(json.dumps(tasks, indent=1))
 
+def _statuses(h):
+    out = {}
+    for name, v in json.loads(STATE.read_text()).items():
+        r = requests.get(f"{API}/task/{_tid(v)}", headers=h, timeout=60); r.raise_for_status()
+        out[name] = r.json().get("status")
+    return out
+
 def cmd_status():
-    h = token()
-    for name, tid in json.loads(STATE.read_text()).items():
-        r = requests.get(f"{API}/task/{tid}", headers=h, timeout=60); r.raise_for_status()
-        print(name, tid, r.json().get("status"))
+    for name, st in _statuses(token()).items(): print(name, st)
+
+def cmd_wait(minutes=180):
+    """Poll until every task is done (or one fails / time runs out). Re-logs in each round so the token never expires."""
+    import time
+    end = time.time() + 60 * float(minutes)
+    while time.time() < end:
+        st = _statuses(token()); print(time.strftime("%H:%M:%S"), st, flush=True)
+        if any(v in ("error", "failed") for v in st.values()): sys.exit("an AppEEARS task failed: " + str(st))
+        if st and all(v == "done" for v in st.values()): return
+        time.sleep(60)
+    sys.exit("timed out waiting for AppEEARS; run 'status' later and then 'download'")
 
 def cmd_download():
     h = token(); out = STATE.parent
-    for name, tid in json.loads(STATE.read_text()).items():
+    for name, v in json.loads(STATE.read_text()).items():
+        tid = _tid(v)
         files = requests.get(f"{API}/bundle/{tid}", headers=h, timeout=60).json().get("files", [])
         for f in files:
             if f["file_name"].endswith(".csv") and "results" in f["file_name"].lower():
@@ -79,5 +104,5 @@ def cmd_download():
 if __name__ == "__main__":
     c = sys.argv[1] if len(sys.argv) > 1 else ""
     {"products": lambda: cmd_products(sys.argv[2]), "record": lambda: cmd_record(sys.argv[2], sys.argv[3]),
-     "layers": lambda: cmd_layers(sys.argv[2]), "submit": cmd_submit, "status": cmd_status, "download": cmd_download}.get(
+     "layers": lambda: cmd_layers(sys.argv[2]), "submit": cmd_submit, "status": cmd_status, "wait": lambda: cmd_wait(*sys.argv[2:3]), "download": cmd_download}.get(
         c, lambda: sys.exit(__doc__))()

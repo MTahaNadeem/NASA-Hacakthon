@@ -153,5 +153,6 @@ I18N.add("sw", {
 "pwa.install":"Sakinisha programu",
 "pwa.offline":"Uko nje ya mtandao. Maeneo yenye data iliyohifadhiwa bado yanafanya kazi.",
 "how.src":"Vyanzo vya kanuni za mazao",
-"how.src.none":"bado hakuna chanzo"
+"how.src.none":"bado hakuna chanzo",
+"gap.soil.moved":"Thamani za udongo zinatoka kwenye seli ya shamba umbali wa takriban km {km} kutoka kwenye pini, kwa sababu pini iko kwenye eneo lililojengwa au majini ambako SoilGrids haina data."
 });

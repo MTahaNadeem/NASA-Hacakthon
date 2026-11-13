@@ -53,12 +53,27 @@
       "&latitude=" + lat + "&longitude=" + lon + "&start=" + Y0 + "0101&end=" + Y1 + "1231";
     return withTimeout(u, 90000).then(parsePower);
   }
+  var SOIL_ALL = { props: ["phh2o", "soc", "sand", "silt", "clay"], depths: ["0-5cm", "5-15cm", "15-30cm"], vals: ["Q0.05", "mean", "Q0.95"] };
+  function soilUrl(lat, lon, o) {
+    return "https://rest.isric.org/soilgrids/v2.0/properties/query?lon=" + lon + "&lat=" + lat +
+      o.props.map(function (p) { return "&property=" + p; }).join("") + o.depths.map(function (d) { return "&depth=" + d; }).join("") + o.vals.map(function (v) { return "&value=" + v; }).join("");
+  }
+  function kmBetween(a, b, c, d) { var p = Math.PI / 180, x = Math.sin((c - a) * p / 2) ** 2 + Math.cos(a * p) * Math.cos(c * p) * Math.sin((d - b) * p / 2) ** 2; return 12742 * Math.asin(Math.sqrt(x)); }
+  // SoilGrids has no values under built-up land or water (city centres!). Try the 4 neighbours at ~11 km, then ~22 km, and use the nearest farmland cell.
+  function nearbySoil(lat, lon) {
+    var rings = [0.1, 0.2], dirs = [[1, 0], [0, 1], [-1, 0], [0, -1]], k = Math.max(0.2, Math.cos(lat * Math.PI / 180));
+    function ring(i) {
+      if (i >= rings.length) return Promise.resolve({ soil: null, km: 0 });
+      var c = dirs.map(function (d) { return [Math.round((lat + d[0] * rings[i]) * 1e4) / 1e4, Math.round((lon + d[1] * rings[i] / k) * 1e4) / 1e4]; });
+      return Promise.all(c.map(function (p) { return withTimeout(soilUrl(p[0], p[1], { props: ["phh2o"], depths: ["0-5cm"], vals: ["mean"] }), 25000).then(function (j) { return !!parseSoil(j).ph; }, function () { return false; }); })).then(function (oks) {
+        var n = oks.indexOf(true); if (n < 0) return ring(i + 1);
+        return withTimeout(soilUrl(c[n][0], c[n][1], SOIL_ALL), 45000).then(parseSoil).then(function (s) { return s.ph ? { soil: s, km: Math.round(kmBetween(lat, lon, c[n][0], c[n][1]) * 10) / 10 } : ring(i + 1); });
+      });
+    }
+    return ring(0);
+  }
   function fetchSoil(lat, lon) {
-    var u = "https://rest.isric.org/soilgrids/v2.0/properties/query?lon=" + lon + "&lat=" + lat +
-      ["phh2o", "soc", "sand", "silt", "clay"].map(function (p) { return "&property=" + p; }).join("") +
-      ["0-5cm", "5-15cm", "15-30cm"].map(function (d) { return "&depth=" + d; }).join("") +
-      ["Q0.05", "mean", "Q0.95"].map(function (v) { return "&value=" + v; }).join("");
-    return withTimeout(u, 45000).then(parseSoil);
+    return withTimeout(soilUrl(lat, lon, SOIL_ALL), 45000).then(parseSoil).then(function (s) { return s.ph ? { soil: s, km: 0 } : nearbySoil(lat, lon); });
   }
 
   // Resolves with a data object shaped like app/data/<id>.json. Soil failure is non-fatal; POWER failure is fatal.
@@ -68,7 +83,7 @@
     onStatus("st.fetchPower");
     return fetchPower(lat, lon).then(function (climate) {
       onStatus("st.fetchSoil");
-      return fetchSoil(lat, lon).then(function (soil) { return [climate, soil, null]; }, function (e) { return [climate, null, e.message]; });
+      return fetchSoil(lat, lon).then(function (r) { return [climate, r, null]; }, function (e) { return [climate, null, e.message]; });
     }).then(function (r) {
       var years = []; for (var y = Y0; y <= Y1; y++) years.push(y);
       var gaps = [
@@ -80,7 +95,10 @@
         gaps: gaps, sources: { power: "NASA POWER" },
         rain_crosscheck: { power_vs_imerg_pct_diff: null, note: "Live location: POWER was not cross-checked against IMERG." },
         resolution_note: "POWER ~0.5 deg (~50 km); SoilGrids 250 m. Results describe the surrounding area, not one field." };
-      if (r[1] && r[1].ph) { d.soil = r[1]; d.soil_units = UNITS; d.sources.soilgrids = "SoilGrids (ISRIC)"; }
+      if (r[1] && r[1].soil && r[1].soil.ph) {
+        d.soil = r[1].soil; d.soil_units = UNITS; d.sources.soilgrids = "SoilGrids (ISRIC)";
+        if (r[1].km) gaps.push("Soil values come from a farmland cell about " + r[1].km + " km from the pin, because the pin is on built-up land or water where SoilGrids has no data.");
+      }
       else gaps.unshift("SoilGrids unavailable for this point (" + (r[2] || "no soil data, e.g. water or urban area") + "): soil fit and soil-carbon factors are dropped.");
       return d;
     });

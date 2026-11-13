@@ -153,5 +153,6 @@ I18N.add("pt", {
 "pwa.install":"Instalar o app",
 "pwa.offline":"Você está offline. Lugares com dados em cache ainda funcionam.",
 "how.src":"Fontes das regras das culturas",
-"how.src.none":"nenhuma fonte informada ainda"
+"how.src.none":"nenhuma fonte informada ainda",
+"gap.soil.moved":"Os valores de solo vêm de uma célula agrícola a cerca de {km} km do marcador, porque o marcador está em área urbana ou água, onde o SoilGrids não tem dados."
 });

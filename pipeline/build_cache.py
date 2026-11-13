@@ -82,13 +82,17 @@ def parse_soilgrids(path):
             bands_ok = bands_ok and full
     return soil, bands_ok
 
-def monthly_clim_from_csv(path, col_hint, scale=1.0, min_valid=None):
-    """Monthly mean climatology (12 values) from an AppEEARS point CSV (column containing col_hint)."""
+def monthly_clim_from_csv(path, col_hint, scale=1.0, min_valid=None, row_id=None):
+    """Monthly mean climatology (12 values) from an AppEEARS point CSV (column containing col_hint).
+    A multi-location task writes ONE csv for all points with an 'ID' column: pass row_id so only that location's rows are used,
+    otherwise every place would be averaged together."""
     by_m = defaultdict(list)
     with open(path, newline="") as f:
         rd = csv.DictReader(f)
         col = next(c for c in rd.fieldnames if col_hint.lower() in c.lower() and "quality" not in c.lower())
+        id_col = next((c for c in rd.fieldnames if c.strip().lower() == "id"), None)
         for row in rd:
+            if row_id is not None and id_col is not None and row[id_col].strip() != row_id: continue
             try: v = float(row[col])
             except (ValueError, TypeError): continue
             if min_valid is not None and v * scale < min_valid: continue  # fill values (e.g. MODIS -3000)
@@ -119,18 +123,22 @@ def build(loc, raw_dir, out_dir):
                               "SoilGrids 250 m. Results describe the surrounding area, not one field."}
     if (d / "soilgrids.json").exists():
         soil, bands_ok = parse_soilgrids(d / "soilgrids.json")
+        samp = json.loads((d / "soilgrids.json").read_text()).get("_sampled") or {}
         if soil.get("ph") and soil.get("clay"):
             rec["soil"] = soil; rec["soil_units"] = SOIL_UNITS; sources["soilgrids"] = "SoilGrids (ISRIC)"
+            if samp.get("km"):
+                rec["soil_sample"] = samp
+                gaps.append(f"Soil values come from a farmland cell about {samp['km']} km from the pin, because the pin is on built-up land or water where SoilGrids has no data.")
             if not bands_ok: gaps.append("SoilGrids percentile bands missing: soil uncertainty not shown.")
         else:
             gaps.append("SoilGrids missing: returned no usable values for this point, so soil fit and soil-carbon factors dropped.")
     else: gaps.append("SoilGrids missing: soil fit and soil-carbon factors dropped.")
     ap = Path(raw_dir) / "_appeears"
     if (ap / "modis_ndvi.csv").exists():
-        rec["ndvi_clim"] = monthly_clim_from_csv(ap / "modis_ndvi.csv", "NDVI", scale=0.0001, min_valid=-0.2); sources["modis"] = "NASA MODIS MOD13Q1"
+        rec["ndvi_clim"] = monthly_clim_from_csv(ap / "modis_ndvi.csv", "NDVI", scale=0.0001, min_valid=-0.2, row_id=loc["id"]); sources["modis"] = "NASA MODIS MOD13Q1"
     else: gaps.append("MODIS NDVI missing: bare-field factor dropped.")
     if (ap / "smap_rootzone.csv").exists():
-        rec["smap_clim"] = monthly_clim_from_csv(ap / "smap_rootzone.csv", "rootzone"); sources["smap"] = "NASA SMAP SPL4SMGP (2015-)"
+        rec["smap_clim"] = monthly_clim_from_csv(ap / "smap_rootzone.csv", "rootzone", min_valid=0.0, row_id=loc["id"]); sources["smap"] = "NASA SMAP SPL4SMGP (2015-)"
     else: gaps.append("SMAP missing: soil-moisture adjustment not applied to the water factor.")
     if (d / "imerg.csv").exists():
         ext, imerg_rain = imerg_extreme(d / "imerg.csv", years); rec["climate"]["extreme_days"] = ext; sources["imerg"] = "NASA GPM IMERG"

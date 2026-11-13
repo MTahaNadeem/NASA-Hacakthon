@@ -153,5 +153,6 @@ I18N.add("en", {
 "pwa.install":"Install app",
 "pwa.offline":"You are offline. Places with cached data still work.",
 "how.src":"Crop rule sources",
-"how.src.none":"no source given yet"
+"how.src.none":"no source given yet",
+"gap.soil.moved":"Soil values come from a farmland cell about {km} km from the pin, because the pin is on built-up land or water where SoilGrids has no data."
 });

@@ -153,5 +153,6 @@ I18N.add("es", {
 "pwa.install":"Instalar la app",
 "pwa.offline":"Sin conexión. Los lugares con datos en caché siguen funcionando.",
 "how.src":"Fuentes de las reglas de cultivo",
-"how.src.none":"aún sin fuente"
+"how.src.none":"aún sin fuente",
+"gap.soil.moved":"Los valores de suelo provienen de una celda agrícola a unos {km} km del marcador, porque el marcador está en zona urbana o agua, donde SoilGrids no tiene datos."
 });

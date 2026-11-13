@@ -153,5 +153,6 @@ I18N.add("fr", {
 "pwa.install":"Installer l'application",
 "pwa.offline":"Vous êtes hors ligne. Les lieux dont les données sont en cache fonctionnent toujours.",
 "how.src":"Sources des règles de culture",
-"how.src.none":"pas encore de source"
+"how.src.none":"pas encore de source",
+"gap.soil.moved":"Les valeurs de sol viennent d'une cellule agricole à environ {km} km du repère, car le repère est sur une zone bâtie ou de l'eau, où SoilGrids n'a pas de données."
 });

@@ -42,6 +42,13 @@ def test_power_and_soilgrids_parse():
         with open(d / "n.csv", "w", newline="") as f:
             w = csv.writer(f); w.writerow(["Date", "MOD13Q1_061__250m_16_days_NDVI"])
             w.writerow(["2004-01-01", 4000]); w.writerow(["2005-01-01", 6000]); w.writerow(["2005-02-01", -3000])
+        # two places in ONE csv (how AppEEARS returns a multi-location task): each must get only its own rows
+        with open(d / "multi.csv", "w", newline="") as f:
+            w = csv.writer(f); w.writerow(["ID", "Date", "MOD13Q1_061__250m_16_days_NDVI"])
+            w.writerow(["a", "2004-01-01", 2000]); w.writerow(["b", "2004-01-01", 8000]); w.writerow(["a", "2005-01-01", 4000])
+        assert bc.monthly_clim_from_csv(d / "multi.csv", "NDVI", scale=0.0001, row_id="a")[0] == 0.3
+        assert bc.monthly_clim_from_csv(d / "multi.csv", "NDVI", scale=0.0001, row_id="b")[0] == 0.8
+        assert bc.monthly_clim_from_csv(d / "multi.csv", "NDVI", scale=0.0001, row_id="zzz")[0] is None
         clim = bc.monthly_clim_from_csv(d / "n.csv", "NDVI", scale=0.0001, min_valid=-0.2)
         assert clim[0] == 0.5 and clim[1] is None  # fill value skipped
 

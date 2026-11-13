@@ -153,5 +153,6 @@ I18N.add("zh", {
 "pwa.install":"安装应用",
 "pwa.offline":"你已离线。已缓存数据的地点仍可使用。",
 "how.src":"作物规则来源",
-"how.src.none":"尚未提供来源"
+"how.src.none":"尚未提供来源",
+"gap.soil.moved":"土壤数值取自距图钉约{km}公里的农田格点，因为图钉位于建成区或水面，SoilGrids在那里没有数据。"
 });

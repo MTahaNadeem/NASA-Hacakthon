@@ -31,9 +31,9 @@
   }
   function months() { return monthNames("narrow"); }
   var GAPS = [[/^PLACEHOLDER/, "gap.synth"], [/^MODIS NDVI missing/, "gap.modis"], [/^SMAP missing/, "gap.smap"], [/^IMERG missing/, "gap.imerg"], [/^SoilGrids missing/, "gap.soilmissing"],
-    [/^Live location: MODIS/, "gap.live.modis"], [/^Live location: SMAP/, "gap.live.smap"], [/^Live location: GPM IMERG/, "gap.live.imerg"], [/^SoilGrids unavailable/, "gap.live.soil"]];
+    [/^Live location: MODIS/, "gap.live.modis"], [/^Live location: SMAP/, "gap.live.smap"], [/^Live location: GPM IMERG/, "gap.live.imerg"], [/^SoilGrids unavailable/, "gap.live.soil"], [/^Soil values come from/, "gap.soil.moved"]];
   function gapText(g) {
-    for (var i = 0; i < GAPS.length; i++) if (GAPS[i][0].test(g)) { var m = /\((.*)\)/.exec(g); return t(GAPS[i][1], { why: m ? m[1] : "" }); }
+    for (var i = 0; i < GAPS.length; i++) if (GAPS[i][0].test(g)) { var m = /\((.*)\)/.exec(g), k = /about ([\d.]+) km/.exec(g); return t(GAPS[i][1], { why: m ? m[1] : "", km: k ? k[1] : "" }); }
     return g;
   }
   function placeName(p) { var n = p.names || {}; return n[I18N.lang()] || n.en || p.id; }

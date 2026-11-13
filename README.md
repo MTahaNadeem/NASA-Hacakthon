@@ -30,36 +30,24 @@ python -m http.server 8000 --directory app    # Windows PowerShell (python, not 
 On Windows, use `python` instead of `python3` for every command below, and set variables with
 `$env:EARTHDATA_USER="..."` instead of `export`.
 
-## Replace placeholders with real data
+## Build the real data (one command)
 
-```bash
-pip install requests earthaccess xarray netCDF4 h5netcdf
-export EARTHDATA_USER=... EARTHDATA_PASS=...      # free NASA Earthdata Login
-python pipeline/appeears.py layers MOD13Q1.061    # confirm layer names, edit PRODUCTS if needed
-python pipeline/appeears.py layers SPL4SMGP.007
-python pipeline/appeears.py submit                # queue MODIS + SMAP first (slow)
-python pipeline/fetch_power.py
-python pipeline/fetch_soilgrids.py
-python pipeline/fetch_imerg.py                    # optional; POWER is the fallback
-python pipeline/appeears.py status                # repeat until done
-python pipeline/appeears.py download
-python pipeline/build_cache.py                    # writes app/data/*.json (synthetic: false)
-node tests/scoring.test.js && node tests/live.test.js && node tests/i18n.test.js && node tests/places.test.js && python tests/test_build_cache.py
+```powershell
+pip install requests
+$env:EARTHDATA_USER="your_username"; $env:EARTHDATA_PASS="your_password"   # free NASA Earthdata Login (needed for MODIS + SMAP)
+python pipeline/run_all.py
 ```
-Missing sources become entries in each location's `gaps` list, and the dependent scoring factors are dropped, never faked.
+`run_all.py` fetches NASA POWER climate and SoilGrids soil for every place in `pipeline/locations.json`, submits the NASA AppEEARS
+jobs for MODIS NDVI and SMAP soil moisture, waits for them (usually minutes to an hour), builds `app/data/*.json`, and prints what each
+place actually contains. It is safe to re-run: finished steps are skipped, and AppEEARS jobs are resubmitted only if the list of places
+changed. Use `--skip-nasa-login` for POWER + SoilGrids only. Then commit `app/data/`.
 
-## Any location on Earth (live mode)
-
-Click the map, search a place name, or type coordinates. For points that are not cached demo locations, the
-browser fetches NASA POWER (climate) and SoilGrids (soil) live. MODIS, SMAP and IMERG need an Earthdata login
-and queued jobs, so live points drop the bare-field factor and the SMAP adjustment, and say so under each
-card's "Data gaps". Pick the rotation set (wheat-based, corn-based, tropical maize) to compare; the app suggests
-one from the climate. Crop calendars are Northern Hemisphere templates, shifted 6 months south of the equator.
-
-**Untested against the real services:** the live code was tested only with mocked responses, because the build
-sandbox had no network. If POWER or SoilGrids block browser (CORS) requests or are slow, the app shows an error and
-the cached demo locations still work. Test it once in your browser before relying on it in the demo. For the
-submission video, use a cached demo location so the demo never depends on a live call.
+Things worth knowing:
+- **SoilGrids has no data under built-up land or water**, and most quick picks are city centres. The pipeline therefore uses the nearest
+  farmland cell within about 30 km and records the distance; the app shows it under "Data gaps". Soil is a 250 m model estimate:
+  for Faisalabad it gives pH about 8.2 and organic matter around 1%, not the "below 0.5%" in newspaper reports.
+- AppEEARS returns one CSV for all places; `build_cache.py` splits it by place (`ID` column).
+- IMERG (`fetch_imerg.py`) is optional and slow (about 7,000 daily files per place); POWER is the fallback for extreme-rain days.
 
 ## Features
 
