@@ -45,3 +45,41 @@ assert.notDeepStrictEqual(a.results.map(x => x.mean), b.results.map(x => x.mean)
 assert.strictEqual(S.rangesOverlap({ low: 0, high: 1 }, { low: 2, high: 3 }), 0);
 assert.strictEqual(S.rangesOverlap({ low: 0, high: 1 }, { low: 0, high: 1 }), 1);
 console.log("scoring tests passed");
+
+// ---- irrigation mode, water gap, confidence, scenarios ----
+{
+  const S2 = require("../app/scoring.js"), c2 = JSON.parse(fs.readFileSync(path.join(__dirname, "../app/rotations.json")));
+  const d = JSON.parse(fs.readFileSync(path.join(__dirname, "../app/data/index.json")))[0];
+  const data = JSON.parse(fs.readFileSync(path.join(__dirname, "../app/data/" + d.id + ".json")));
+  const ids = d.rotation_ids, base = { water: .5, income: .5, soil: .5 };
+  // rain-fed: the water-saving slider no longer has any effect, and the water factor moves under income
+  assert.strictEqual(S2.sliderOf({ id: "water", slider: "water" }, "rainfed"), "income");
+  assert.strictEqual(S2.sliderOf({ id: "water", slider: "water" }, "irrigated"), "water");
+  const m = (sl, irr) => S2.rankRotations(c2, data, ids, sl, { irrigation: irr }).results.map(x => x.id + ":" + x.mean.toFixed(6)).sort().join();
+  assert.strictEqual(m({ ...base, water: 0 }, "rainfed"), m({ ...base, water: 1 }, "rainfed"), "water slider must be inert when rain-fed");
+  assert.notStrictEqual(m({ ...base, water: 0 }, "irrigated"), m({ ...base, water: 1 }, "irrigated"), "water slider must work when irrigated");
+  assert.strictEqual(m(base, "irrigated"), m(base, undefined), "unknown behaves like irrigated");
+  const ws = S2.weightsFromSliders(base, S2.FACTORS.map(f => f.id), "rainfed"); assert(Math.abs(Object.values(ws).reduce((a, b) => a + b, 0) - 1) < 1e-9);
+  // water gap: more rain -> smaller gap; a thirsty crop has a bigger gap than a light one
+  const gap = (dd, id) => S2.irrigationNeed(c2.rotations[id], c2, dd);
+  const wet = JSON.parse(JSON.stringify(data)); wet.climate.rain = wet.climate.rain.map(r => r.map(v => v * 5));
+  ids.forEach(id => { assert(gap(data, id) >= 0 && gap(wet, id) <= gap(data, id), id); });
+  assert(S2.irrigationNeed(c2.rotations.wheat_fallow, c2, wet) < S2.irrigationNeed(c2.rotations.wheat_fallow, c2, data));
+  // confidence: never "high" with fewer than 3 data sources; tie / wide range / no soil lower it
+  const few = { sources: { power: "NASA POWER", soilgrids: "x" }, soil: { ph: {} } };
+  assert.notStrictEqual(S2.confidence({ low: .5, high: .55, noClearWinner: false }, few).level, "high");
+  const many = { sources: { power: 1, soilgrids: 1, modis: 1, smap: 1 }, soil: { ph: {} } };
+  assert.strictEqual(S2.confidence({ low: .5, high: .55, noClearWinner: false }, many).level, "high");
+  assert.deepStrictEqual(S2.confidence({ low: .1, high: .9, noClearWinner: true }, { sources: {} }).reasons.sort(), ["conf.r.fewdata", "conf.r.nosoil", "conf.r.tie", "conf.r.wide"]);
+  assert.strictEqual(S2.confidence({ low: .1, high: .9, noClearWinner: true }, { sources: {} }).level, "low");
+  // scenarios: rain scales; warming swaps in the stored threshold counts; missing counts degrade safely
+  const sc = S2.applyScenario(data, -20, 0); assert(Math.abs(sc.climate.rain[0][6] - data.climate.rain[0][6] * .8) < 1e-9); assert.strictEqual(S2.applyScenario(data, 0, 0), data);
+  const t0 = JSON.parse(JSON.stringify(data)); t0.climate.heat_by_dt = { "0": t0.climate.heat_days, "2": t0.climate.heat_days.map(r => r.map(v => v + 3)) }; t0.climate.frost_by_dt = { "0": t0.climate.frost_days, "2": t0.climate.frost_days.map(r => r.map(() => 0)) };
+  const w2 = S2.applyScenario(t0, 0, 2); assert.strictEqual(w2.climate.heat_days[0][0], t0.climate.heat_days[0][0] + 3); assert.strictEqual(w2.climate.frost_days[0][0], 0);
+  assert.strictEqual(S2.applyScenario(t0, 0, 3), t0, "no counts for +3 -> unchanged");
+  assert.strictEqual(S2.applyScenario(data, 0, 2), data, "data without threshold counts -> unchanged"); assert.strictEqual(S2.hasTemperatureScenario(data), !!(data.climate.heat_by_dt));
+  // more heat never improves a heat-sensitive crop's heat score
+  const hot = S2.rankRotations(c2, S2.applyScenario(t0, 0, 2), ids, base).results, cool = S2.rankRotations(c2, t0, ids, base).results;
+  assert(hot.reduce((a, x) => a + x.mean, 0) <= cool.reduce((a, x) => a + x.mean, 0) + 1e-9);
+  console.log("irrigation/confidence/scenario tests passed");
+}

@@ -23,6 +23,11 @@ Hero case: wheat-on-wheat in Punjab (Faisalabad) versus legume and oilseed rotat
 Non-NASA: SoilGrids (ISRIC) for soil pH, texture and organic carbon with 5th-95th percentile uncertainty.
 List only the datasets that are actually in the final cache; check each location's "sources" field in app/data/*.json.
 
+## Features to mention (pick what fits the time limit)
+Summary with confidence level; irrigated vs rain-fed; rainfall and temperature what-if sliders; editable crop rules with sources;
+compare two places; share link; print report; works offline; 10 languages including Urdu and Arabic (right-to-left).
+Do not claim the translations are expert-reviewed unless a fluent speaker has checked them.
+
 ## AI disclosure
 AI tools were used in this project. Claude (Anthropic) helped draft the project proposal and wrote or reviewed parts of the code: the scoring module, data-fetch scripts, cache builder and web app. All AI-assisted output was reviewed and tested by the team. Scoring rules, crop parameters and data choices were decided by the team. [Edit to match what your team actually did.]
 

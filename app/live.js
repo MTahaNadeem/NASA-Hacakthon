@@ -18,15 +18,17 @@
   function r2(g) { return g.map(function (r) { return r.map(function (v) { return Math.round(v * 100) / 100; }); }); }
 
   function parsePower(json) {
-    var p = json.properties.parameter, rain = grid(), ts = grid(), tc = grid(), heat = grid(), frost = grid(), ext = grid(), validRain = 0, total = 0;
+    var p = json.properties.parameter, rain = grid(), ts = grid(), tc = grid(), ext = grid(), validRain = 0, total = 0, d;
+    var heatDt = [0, 1, 2, 3, 4].map(grid), frostDt = [0, 1, 2, 3, 4].map(grid);
     function each(name, fn) { var s = p[name]; Object.keys(s).forEach(function (k) { var v = s[k], y = +k.slice(0, 4), m = +k.slice(4, 6) - 1; if (y >= Y0 && y <= Y1) fn(y - Y0, m, v); }); }
     each("PRECTOTCORR", function (y, m, v) { total++; if (v > -990) { validRain++; rain[y][m] += v; if (v >= EXTREME_MM) ext[y][m]++; } });
     each("T2M", function (y, m, v) { if (v > -990) { ts[y][m] += v; tc[y][m]++; } });
-    each("T2M_MAX", function (y, m, v) { if (v > -990 && v >= HEAT_C) heat[y][m]++; });
-    each("T2M_MIN", function (y, m, v) { if (v > -990 && v <= FROST_C) frost[y][m]++; });
+    each("T2M_MAX", function (y, m, v) { if (v > -990) for (d = 0; d < 5; d++) if (v >= HEAT_C - d) heatDt[d][y][m]++; });
+    each("T2M_MIN", function (y, m, v) { if (v > -990) for (d = 0; d < 5; d++) if (v <= FROST_C - d) frostDt[d][y][m]++; });
     if (!total || validRain / total < 0.9) throw new Error("NO_LAND");
     var tmean = ts.map(function (r, y) { return r.map(function (s, m) { return tc[y][m] ? Math.round(s / tc[y][m] * 10) / 10 : null; }); });
-    return { rain: r2(rain), tmean: tmean, heat_days: heat, frost_days: frost, extreme_days: ext };
+    var by = function (a) { var o = {}; a.forEach(function (g, i) { o[String(i)] = g; }); return o; };
+    return { rain: r2(rain), tmean: tmean, heat_days: heatDt[0], frost_days: frostDt[0], extreme_days: ext, heat_by_dt: by(heatDt), frost_by_dt: by(frostDt) };
   }
 
   function pick(vals, name) { for (var k in (vals || {})) if (String(k).toLowerCase() === name) return vals[k]; return null; }

@@ -30,7 +30,8 @@
     35
    ],
    "soc_effect": -0.3,
-   "type": "cereal"
+   "type": "cereal",
+   "source": ""
   },
   "mungbean": {
    "label": "Mungbean (summer)",
@@ -57,7 +58,8 @@
     40
    ],
    "soc_effect": 0.8,
-   "type": "legume"
+   "type": "legume",
+   "source": ""
   },
   "chickpea": {
    "label": "Chickpea",
@@ -87,7 +89,8 @@
     40
    ],
    "soc_effect": 0.8,
-   "type": "legume"
+   "type": "legume",
+   "source": ""
   },
   "mustard": {
    "label": "Mustard / canola",
@@ -117,7 +120,8 @@
     40
    ],
    "soc_effect": -0.1,
-   "type": "oilseed"
+   "type": "oilseed",
+   "source": ""
   },
   "corn": {
    "label": "Corn",
@@ -148,7 +152,8 @@
     40
    ],
    "soc_effect": -0.4,
-   "type": "cereal"
+   "type": "cereal",
+   "source": ""
   },
   "soy": {
    "label": "Soybean",
@@ -179,7 +184,8 @@
     40
    ],
    "soc_effect": 0.4,
-   "type": "legume"
+   "type": "legume",
+   "source": ""
   },
   "oats": {
    "label": "Oats",
@@ -208,7 +214,8 @@
     40
    ],
    "soc_effect": 0.1,
-   "type": "cereal"
+   "type": "cereal",
+   "source": ""
   },
   "bean": {
    "label": "Common bean",
@@ -239,7 +246,8 @@
     40
    ],
    "soc_effect": 0.7,
-   "type": "legume"
+   "type": "legume",
+   "source": ""
   },
   "groundnut": {
    "label": "Groundnut",
@@ -270,7 +278,8 @@
     30
    ],
    "soc_effect": 0.7,
-   "type": "legume"
+   "type": "legume",
+   "source": ""
   }
  },
  "rotations": {

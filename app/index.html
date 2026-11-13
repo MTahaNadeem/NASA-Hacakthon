@@ -9,6 +9,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0b1a11">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -28,14 +31,15 @@
       <span class="sr" data-i18n="lang.label">Language</span>
       <select id="lang"></select>
     </label>
+    <button type="button" id="install" class="btn sm" data-i18n="pwa.install" hidden>Install app</button>
   </div>
 </header>
 
-<section class="hero" id="top">
+<section class="hero" id="top" aria-labelledby="hero-title">
   <div class="hero-in">
     <div class="hero-copy">
       <p class="eyebrow"><span class="dot"></span><span data-i18n="hero.eyebrow">NASA Space Apps Challenge 2026</span></p>
-      <h1><span data-i18n="hero.t1">See the evidence</span> <em data-i18n="hero.t2">before</em> <span data-i18n="hero.t3">you change the rotation.</span></h1>
+      <h1 id="hero-title"><span data-i18n="hero.t1">See the evidence</span> <em data-i18n="hero.t2">before</em> <span data-i18n="hero.t3">you change the rotation.</span></h1>
       <p class="lede" data-i18n="hero.lede"></p>
       <div class="cta"><a class="btn primary" href="#explore" data-i18n="hero.cta1">Explore a location</a><a class="btn" href="#steps" data-i18n="hero.cta2">How it works</a></div>
     </div>
@@ -51,6 +55,7 @@
 </section>
 
 <div id="banner" class="banner" role="alert" hidden></div>
+<div id="offline" class="banner soft" role="status" data-i18n="pwa.offline" hidden>You are offline.</div>
 
 <main>
 <section class="sec" id="explore">
@@ -67,7 +72,7 @@
           <p class="mini" data-i18n="loc.gps.note"></p>
           <p class="mini strong" data-i18n="loc.picks">Quick picks</p>
           <p class="mini nomt" data-i18n="loc.picks.hint"></p>
-          <div id="loclist" role="list"></div>
+          <div id="loclist"></div>
           <p id="status" class="status" role="status"></p>
           <div id="presetrow" hidden>
             <label class="lbl" for="preset" data-i18n="loc.preset">Rotation set to compare</label>
@@ -84,11 +89,16 @@
             <label><span data-i18n="pri.soil">Soil building</span><output id="o-soil"></output><input type="range" id="sl-soil" min="0" max="100" value="50"></label>
           </div>
           <p class="mini" data-i18n="pri.hint"></p>
+          <label class="lbl" for="irr" data-i18n="irr.title">Water source</label>
+          <select id="irr"><option value="u" data-i18n="irr.unknown">Not sure</option><option value="y" data-i18n="irr.yes">Irrigated</option><option value="n" data-i18n="irr.no">Rain-fed only</option></select>
+          <p class="mini" data-i18n="irr.hint"></p>
         </section>
 
         <section class="cardx">
           <h3 data-i18n="sc.title">What if it gets drier?</h3>
           <label class="sc"><span data-i18n="sc.rain">Rainfall change</span><output id="o-rain"></output><input type="range" id="sl-rain" min="-40" max="20" value="0" step="5"></label>
+          <label class="sc tmp"><span data-i18n="sc.temp">Temperature change</span><output id="o-temp"></output><input type="range" id="sl-temp" min="0" max="4" value="0" step="1"></label>
+          <p id="tempna" class="mini" data-i18n="sc.temp.na" hidden></p>
           <p id="flip" class="flip"></p>
           <p class="mini" data-i18n="sc.note"></p>
         </section>
@@ -102,18 +112,26 @@
           </div></div>
 
         <section class="results">
+          <div id="printhead" class="only-print"></div>
           <div class="reshead">
             <div><h3 id="resname"></h3><p class="mini" id="resmeta"></p></div>
             <ul class="cov" id="cov" aria-label="Data used"></ul>
+            <div class="actions"><button type="button" id="copylink" class="btn sm" data-i18n="share.copy">Copy link</button><button type="button" id="printbtn" class="btn sm" data-i18n="print.btn">Print / save PDF</button><span id="sharemsg" class="mini" role="status"></span></div>
           </div>
           <div class="tabs" role="tablist">
             <button role="tab" id="t-rot" aria-selected="true" aria-controls="p-rot" data-tab="rot" data-i18n="tab.rot">Rotations</button>
             <button role="tab" id="t-profile" aria-selected="false" aria-controls="p-profile" data-tab="profile" data-i18n="tab.profile">Field profile</button>
             <button role="tab" id="t-cal" aria-selected="false" aria-controls="p-cal" data-tab="cal" data-i18n="tab.cal">Calendar</button>
+            <button role="tab" id="t-rules" aria-selected="false" aria-controls="p-rules" data-tab="rules" data-i18n="tab.rules">Crop rules</button>
+            <button role="tab" id="t-cmp" aria-selected="false" aria-controls="p-cmp" data-tab="cmp" data-i18n="tab.cmp">Compare places</button>
           </div>
-          <div class="panel" id="p-rot" role="tabpanel" aria-labelledby="t-rot"><p class="mini" data-i18n="cards.hint"></p><div id="cards"></div></div>
+          <div class="panel" id="p-rot" role="tabpanel" aria-labelledby="t-rot"><div id="summary"></div><p class="mini" data-i18n="cards.hint"></p><div id="cards"></div></div>
           <div class="panel" id="p-profile" role="tabpanel" aria-labelledby="t-profile" hidden><div id="profile"></div></div>
           <div class="panel" id="p-cal" role="tabpanel" aria-labelledby="t-cal" hidden><p class="mini" data-i18n="cal.hint"></p><div id="calendar"></div></div>
+          <div class="panel" id="p-rules" role="tabpanel" aria-labelledby="t-rules" hidden><p class="mini" data-i18n="rules.hint"></p><div id="rules"></div></div>
+          <div class="panel" id="p-cmp" role="tabpanel" aria-labelledby="t-cmp" hidden>
+            <div class="cmpbar"><label class="lbl" for="cmpsel" data-i18n="cmp.pick">Compare with</label><select id="cmpsel"></select></div>
+            <p class="mini" data-i18n="cmp.hint"></p><div id="compare"></div></div>
         </section>
       </div>
     </div>

@@ -61,6 +61,26 @@ sandbox had no network. If POWER or SoilGrids block browser (CORS) requests or a
 the cached demo locations still work. Test it once in your browser before relying on it in the demo. For the
 submission video, use a cached demo location so the demo never depends on a live call.
 
+## Features
+
+- **Summary card** with the best rotation for your priorities, how it compares with the current one, a **confidence** level
+  (high / medium / low, with the reasons) and what to ask a local agronomist. Every card has its own confidence badge.
+  With only POWER + SoilGrids loaded (any live point) confidence can never be "high"; that is deliberate.
+- **Water source** (not sure / irrigated / rain-fed). Irrigated farms are scored on how much water is needed; for rain-fed
+  farms a water gap is yield risk, so the water factor moves under the income slider and the water-saving slider switches off.
+  Each card shows the typical water gap in mm per year.
+- **What-if sliders**: rainfall, and **temperature (+0 to +4 °C)**. Warming re-counts heat days against a threshold lowered by
+  the warming (Tmax >= 35 - dT) and frost days against Tmin <= -dT, using counts stored from the real daily data
+  (`heat_by_dt` / `frost_by_dt`). Evaporation (water demand) is not adjusted. Cached files built before this feature need
+  `python pipeline/build_cache.py` re-run to enable the temperature slider; live points have it automatically.
+- **Crop rules tab**: a local expert can edit water need, sowing/harvest month and pH range per crop, and add a **source or note**
+  (listed under "Crop rule sources" and in the print report). Only those fields change; heat/frost/rain-sensitive months stay as in the template.
+- **Compare places**: any quick pick next to the current place, using the same priorities, water source and crop rules.
+- **Share link**: "Copy link" stores location, priorities, water source, scenarios, edited crop rules, tab and compared place in the URL.
+- **Print / save PDF**: a clean report with every tab, details expanded, the link and a disclaimer.
+- **Installable and offline**: a service worker caches the app and cached places (needs https or localhost). Live APIs and map tiles are never cached.
+- **Accessibility**: axe-core finds no violations in light, dark, right-to-left and phone layouts across all tabs.
+
 ## Quick picks, search and "use my location"
 
 - **Quick picks** (`app/places.json`): Lahore (default), Islamabad, Rawalpindi, Ludhiana, Dhaka, Nairobi, Londrina, Toowoomba and Ames.

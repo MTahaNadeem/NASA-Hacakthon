@@ -1,0 +1,11 @@
+{
+  "name": "Rotation Explorer",
+  "short_name": "Rotations",
+  "description": "Compare crop rotations with NASA data, with evidence, uncertainty and data gaps shown.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b1a11",
+  "theme_color": "#0b1a11",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

@@ -54,16 +54,6 @@
     return months.reduce(function (s, m) { return s + (series[y][m - 1] || 0); }, 0);
   }
 
-  // soilMode: "low" | "mid" | "high" picks the pessimistic / central / optimistic soil value.
-  function soilValue(soil, key, mode, goodDirection) {
-    var q = soil[key];
-    if (!q) return null;
-    if (mode === "mid") return q.mean;
-    // goodDirection tells us whether bigger is better for the score; for pH/clay we
-    // evaluate both ends and let the caller pick min/max, so here mode is a literal end.
-    return mode === "low" ? q.q05 : q.q95;
-  }
-
   function distOutside(v, range) {
     if (v < range[0]) return range[0] - v;
     if (v > range[1]) return v - range[1];
@@ -83,6 +73,26 @@
     return clamp(0.5 + 0.35 * crop.soc_effect * (1 + lowBoost), 0, 1);
   }
 
+  // Rain the crop can actually use: 80% of rain in its growing months, nudged by SMAP root-zone moisture when available.
+  function effectiveSupply(crop, data, y) {
+    var months = growingMonths(crop), rain = sumMonths(data.climate.rain, y, months), smapAdj = 1;
+    if (data.smap_clim) {
+      var sm = mean(months.map(function (m) { return data.smap_clim[m - 1]; }).filter(function (v) { return v != null; }));
+      if (!isNaN(sm)) smapAdj = clamp(1 + (sm - 0.25) * 0.6, 0.85, 1.15);
+    }
+    return rain * 0.8 * smapAdj;
+  }
+
+  // Typical water gap in mm per year: what rain does not cover (the irrigation need if irrigated).
+  function irrigationNeed(rot, cfg, data) {
+    var tot = 0, n = 0;
+    for (var y = 0; y < data.years.length; y++) rot.cycle.forEach(function (plan) {
+      var gap = 0; plan.forEach(function (cid) { var c = cfg.crops[cid]; gap += Math.max(0, c.water_mm - effectiveSupply(c, data, y)); });
+      tot += gap; n++;
+    });
+    return n ? tot / n : NaN;
+  }
+
   // Score one crop in one year (index y into data.years). Returns factor -> 0..1 or null if no data.
   // soilMode: "low" | "mid" | "high" -- low = worst-case soil values, high = best-case.
   function cropFactors(crop, data, y, soilMode) {
@@ -90,14 +100,7 @@
     var out = {};
 
     // water
-    var rain = sumMonths(data.climate.rain, y, months);
-    var smapAdj = 1;
-    if (data.smap_clim) {
-      var sm = mean(months.map(function (m) { return data.smap_clim[m - 1]; }).filter(function (v) { return v != null; }));
-      if (!isNaN(sm)) smapAdj = clamp(1 + (sm - 0.25) * 0.6, 0.85, 1.15);
-    }
-    var supply = rain * 0.8 * smapAdj;
-    out.water = 1 - clamp((crop.water_mm - supply) / crop.water_mm, 0, 1);
+    out.water = 1 - clamp((crop.water_mm - effectiveSupply(crop, data, y)) / crop.water_mm, 0, 1);
 
     // heat / frost
     var heat = sumMonths(data.climate.heat_days, y, crop.heat_months) * crop.heat_sens;
@@ -142,10 +145,13 @@
   }
 
   // Normalised weights per factor from the three sliders (each 0..1).
-  function weightsFromSliders(sl, availableFactorIds) {
+  // Rain-fed farms cannot trade water use for anything: a water gap there is yield risk, so it moves to the income slider.
+  function sliderOf(f, irrigation) { return (f.id === "water" && irrigation === "rainfed") ? "income" : f.slider; }
+
+  function weightsFromSliders(sl, availableFactorIds, irrigation) {
     var groups = { water: [], income: [], soil: [] };
     FACTORS.forEach(function (f) {
-      if (!availableFactorIds || availableFactorIds.indexOf(f.id) >= 0) groups[f.slider].push(f.id);
+      if (!availableFactorIds || availableFactorIds.indexOf(f.id) >= 0) groups[sliderOf(f, irrigation)].push(f.id);
     });
     var w = {}, total = 0;
     SLIDERS.forEach(function (s) {
@@ -205,7 +211,7 @@
   function rankRotations(cfg, data, rotationIds, sliders, opts) {
     opts = opts || {};
     var avail = availableFactors(data);
-    var weights = weightsFromSliders(sliders, avail);
+    var weights = weightsFromSliders(sliders, avail, opts.irrigation);
     var results = rotationIds.map(function (id) {
       var rot = cfg.rotations[id];
       var mid = yearScores(rot, cfg, data, weights, "mid");
@@ -254,12 +260,39 @@
     return out;
   }
 
+  // Confidence is about how far to trust a ranking, not about the crops: close calls, wide year-to-year ranges,
+  // missing soil data and few data sources all lower it. With only POWER + SoilGrids it can never be "high".
+  function confidence(res, data) {
+    var reasons = [], pts = 0;
+    if (res.noClearWinner) reasons.push("conf.r.tie"); else pts++;
+    if (res.high - res.low > 0.25) reasons.push("conf.r.wide"); else pts++;
+    if (!(data.soil && data.soil.ph)) reasons.push("conf.r.nosoil"); else pts++;
+    var nsrc = Object.keys(data.sources || {}).filter(function (k) { return data.sources[k] && data.sources[k] !== "synthetic"; }).length;
+    if (nsrc < 3) reasons.push("conf.r.fewdata"); else pts++;
+    return { level: pts >= 4 ? "high" : (pts >= 3 ? "medium" : "low"), reasons: reasons };
+  }
+
+  function hasTemperatureScenario(d) { return !!(d.climate && d.climate.heat_by_dt && d.climate.frost_by_dt); }
+
+  // What-if on the historical record. Rain is scaled. Warming of dT degrees C re-counts heat days against a threshold lowered
+  // by dT (Tmax >= 35-dT) and frost days against Tmin <= -dT, using counts the pipeline stored from the real daily data.
+  // Evaporation (water demand) is NOT adjusted.
+  function applyScenario(d, rainPct, dT) {
+    var warm = dT > 0 && hasTemperatureScenario(d) && d.climate.heat_by_dt[String(dT)] && d.climate.frost_by_dt[String(dT)];
+    if (!rainPct && !warm) return d;
+    var c = JSON.parse(JSON.stringify(d));
+    if (rainPct) { var k = 1 + rainPct / 100; c.climate.rain = c.climate.rain.map(function (r) { return r.map(function (v) { return v * k; }); }); }
+    if (warm) { c.climate.heat_days = c.climate.heat_by_dt[String(dT)]; c.climate.frost_days = c.climate.frost_by_dt[String(dT)]; }
+    return c;
+  }
+
   var api = {
     FACTORS: FACTORS, SLIDERS: SLIDERS,
     growingMonths: growingMonths, cropFactors: cropFactors, bareScore: bareScore,
     weightsFromSliders: weightsFromSliders, availableFactors: availableFactors,
     yearScores: yearScores, rankRotations: rankRotations, factorBreakdown: factorBreakdown,
-    rangesOverlap: rangesOverlap, pct: pct, mean: mean
+    rangesOverlap: rangesOverlap, pct: pct, mean: mean,
+    effectiveSupply: effectiveSupply, irrigationNeed: irrigationNeed, confidence: confidence, applyScenario: applyScenario, hasTemperatureScenario: hasTemperatureScenario, sliderOf: sliderOf
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.Scoring = api;

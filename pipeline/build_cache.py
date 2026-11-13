@@ -21,7 +21,9 @@ def parse_power(path, y0, y1):
     p = json.loads(Path(path).read_text())["properties"]["parameter"]
     years = list(range(y0, y1 + 1))
     def grid(): return [[0.0] * 12 for _ in years]
-    rain, tsum, tcount, heat, frost, ext = grid(), grid(), grid(), grid(), grid(), grid()
+    rain, tsum, tcount, ext = grid(), grid(), grid(), grid()
+    # counts for the warming scenario: heat_dt[d] = days with Tmax >= 35-d, frost_dt[d] = days with Tmin <= 0-d  (d = 0..4 degrees C)
+    heat_dt = [grid() for _ in range(5)]; frost_dt = [grid() for _ in range(5)]
     for ds, v in p["PRECTOTCORR"].items():
         y, m = int(ds[:4]), int(ds[4:6]) - 1
         if v > -990 and y0 <= y <= y1:
@@ -32,14 +34,19 @@ def parse_power(path, y0, y1):
         if v > -990 and y0 <= y <= y1: tsum[y - y0][m] += v; tcount[y - y0][m] += 1
     for ds, v in p["T2M_MAX"].items():
         y, m = int(ds[:4]), int(ds[4:6]) - 1
-        if v > -990 and v >= HEAT_C and y0 <= y <= y1: heat[y - y0][m] += 1
+        if v > -990 and y0 <= y <= y1:
+            for d in range(5):
+                if v >= HEAT_C - d: heat_dt[d][y - y0][m] += 1
     for ds, v in p["T2M_MIN"].items():
         y, m = int(ds[:4]), int(ds[4:6]) - 1
-        if v > -990 and v <= FROST_C and y0 <= y <= y1: frost[y - y0][m] += 1
+        if v > -990 and y0 <= y <= y1:
+            for d in range(5):
+                if v <= FROST_C - d: frost_dt[d][y - y0][m] += 1
     tmean = [[round(tsum[i][m] / tcount[i][m], 1) if tcount[i][m] else None for m in range(12)] for i in range(len(years))]
     r2 = lambda g: [[round(v, 2) for v in row] for row in g]
-    return years, {"rain": r2(rain), "tmean": tmean, "heat_days": [[int(v) for v in r] for r in heat],
-                   "frost_days": [[int(v) for v in r] for r in frost], "extreme_days": [[int(v) for v in r] for r in ext]}, p["PRECTOTCORR"]
+    ints = lambda g: [[int(v) for v in r] for r in g]
+    return years, {"rain": r2(rain), "tmean": tmean, "heat_days": ints(heat_dt[0]), "frost_days": ints(frost_dt[0]), "extreme_days": ints(ext),
+                   "heat_by_dt": {str(d): ints(heat_dt[d]) for d in range(5)}, "frost_by_dt": {str(d): ints(frost_dt[d]) for d in range(5)}}, p["PRECTOTCORR"]
 
 def _pick(vals, name):
     """Case-insensitive lookup of a percentile key such as 'Q0.05' or 'mean'."""

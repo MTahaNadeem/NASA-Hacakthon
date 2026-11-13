@@ -8,7 +8,7 @@ def test_power_and_soilgrids_parse():
         t = Path(t); d = t / "x"; d.mkdir()
         days = {"20040115": 2.0, "20040116": 60.0, "20040201": -999.0, "20050101": 1.0}
         power = {"properties": {"parameter": {"PRECTOTCORR": days,
-                 "T2M": {k: 10.0 for k in days}, "T2M_MAX": {"20040115": 36.0, "20040116": 20.0},
+                 "T2M": {k: 10.0 for k in days}, "T2M_MAX": {"20040115": 36.0, "20040116": 20.0, "20040201": 34.0},
                  "T2M_MIN": {"20040115": -1.0, "20040116": 5.0}}}}
         (d / "power.json").write_text(json.dumps(power))
         years, c, _ = bc.parse_power(d / "power.json", 2004, 2005)
@@ -16,6 +16,10 @@ def test_power_and_soilgrids_parse():
         assert c["rain"][0][0] == 62.0           # Jan 2004: 2 + 60, -999 ignored
         assert c["extreme_days"][0][0] == 1      # the 60 mm day
         assert c["heat_days"][0][0] == 1 and c["frost_days"][0][0] == 1
+        # warming scenario counts: 34 C only counts once the threshold drops to 34 (+1 C); 36 C counts at every step
+        assert c["heat_by_dt"]["0"][0][1] == 0 and c["heat_by_dt"]["1"][0][1] == 1 and c["heat_by_dt"]["4"][0][0] == 1
+        assert c["heat_by_dt"]["0"] == c["heat_days"] and c["frost_by_dt"]["0"] == c["frost_days"]
+        assert c["frost_by_dt"]["1"][0][0] == 1 and c["frost_by_dt"]["2"][0][0] == 0  # a -1 C night is frost at +1 C of warming but not at +2 C
         sg = {"properties": {"layers": [{"name": "phh2o", "unit_measure": {"d_factor": 10}, "depths": [
               {"label": "0-5cm", "values": {"Q0.05": 78, "mean": 82, "Q0.95": 86}},
               {"label": "5-15cm", "values": {"Q0.05": 78, "mean": 82, "Q0.95": 86}}]}]}}

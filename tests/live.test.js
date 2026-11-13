@@ -2,10 +2,11 @@ const assert = require("assert");
 const L = require("../app/live.js");
 // minimal POWER payload (fixture values are invented, test-only)
 const days = {}; for (let y = 2004; y <= 2023; y++) for (const m of ["01", "07"]) for (const d of ["10", "11"]) days[`${y}${m}${d}`] = 1;
-const p = { properties: { parameter: { PRECTOTCORR: { ...days, "20040110": 60 }, T2M: days, T2M_MAX: { ...days, "20040710": 40 }, T2M_MIN: { ...days, "20040110": -2 } } } };
+const p = { properties: { parameter: { PRECTOTCORR: { ...days, "20040110": 60 }, T2M: days, T2M_MAX: { ...days, "20040710": 40, "20040711": 34 }, T2M_MIN: { ...days, "20040110": -2 } } } };
 const c = L.parsePower(p);
 assert.strictEqual(c.rain.length, 20); assert.strictEqual(c.extreme_days[0][0], 1);
-assert.strictEqual(c.heat_days[0][6], 1); assert.strictEqual(c.frost_days[0][0], 1);
+assert.strictEqual(c.heat_days[0][6], 1);
+assert.strictEqual(c.heat_by_dt["0"][0][6], 1); assert.strictEqual(c.heat_by_dt["1"][0][6], 2); assert.deepStrictEqual(c.heat_by_dt["0"], c.heat_days); assert.strictEqual(c.frost_days[0][0], 1);
 // ocean / no data is rejected, not scored
 const bad = { properties: { parameter: { PRECTOTCORR: Object.fromEntries(Object.keys(days).map(k => [k, -999])), T2M: days, T2M_MAX: days, T2M_MIN: days } } };
 assert.throws(() => L.parsePower(bad), /NO_LAND/);
