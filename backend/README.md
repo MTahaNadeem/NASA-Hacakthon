@@ -76,8 +76,8 @@ What you must do once:
 2. Create a token (Earthdata profile -> **Generate Token**; valid ~60 days) and set it as `EARTHDATA_TOKEN` in the Render dashboard
    (Environment tab). Never put it in the repository or in `app/`. Renew it before it expires.
 
-Honest limits: these are **recent values only** (last 30 days), shown as extra evidence and **not used in the score** (the score needs
-20-year baselines, which cannot be built on demand). SMAP passes a place only every 2-3 days, so most days have no reading. IMERG Late is a
+Honest limits: these are **recent values only** (last 30 days), shown as evidence and, in the browser, used as a **small capped nudge** to the score (at most 7.5% each: IMERG recalibrates
+POWER's rain over the same window, SMAP shifts it by surface wetness). They never replace the 20-year baselines, which cannot be built on demand. SMAP passes a place only every 2-3 days, so most days have no reading. IMERG Late is a
 preliminary estimate. Many places read at once slow NASA's queue down for everyone (measured: ~30 s alone, 110 s+ with overlapping runs), so the
 server reads at most two places at the same time. Without a token `/api/recent` says `not_configured` and the site shows only the newest-date notice.
 

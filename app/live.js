@@ -126,6 +126,31 @@
     return true;
   }
 
+  // Recent NASA SMAP soil moisture and GPM IMERG rain (/api/recent) as a SMALL, capped nudge to the water supply (see Scoring.effectiveSupply).
+  // They cover only the last ~30 days, so they never replace the 20-year record: IMERG only recalibrates POWER's rain by how far the two differ
+  // over the same recent window, and SMAP only shifts it by the recent surface wetness. Returns true when something changed.
+  function daysBetween(a, b) { var x = Date.parse(a), y = Date.parse(b); return isFinite(x) && isFinite(y) ? Math.round((y - x) / 864e5) + 1 : null; }
+  function applyRecent(d, rec, loc) {
+    if (!d || !rec) return false;
+    var adj = {}, srcs = d.sources = d.sources || {}, days = (rec.window || {}).days || 30;
+    if (rec.smap && rec.smap.valid_passes >= 3 && isFinite(+rec.smap.mean) && rec.smap.mean != null) {
+      adj.smap_mean = +rec.smap.mean; adj.smap_passes = rec.smap.valid_passes; srcs.smap = "NASA SMAP L3 9 km, last " + days + " days";
+    }
+    var rv = loc && loc.indicators && loc.indicators.recent_vs_normal, im = rec.imerg;
+    if (im && im.valid_days >= 10 && rv && isFinite(+rv.rain_mm)) {
+      var pd = daysBetween(rv.window_start, rv.window_end);
+      if (pd >= 7) {
+        var perI = im.total_mm / im.valid_days, perP = +rv.rain_mm / pd;     // mm per day, so the two windows need not match exactly
+        adj.imerg_ratio = (perI + 0.2) / (perP + 0.2); adj.imerg_days = im.valid_days; srcs.imerg = "NASA GPM IMERG, last " + days + " days";
+      }
+    }
+    var same = JSON.stringify(adj) === JSON.stringify(d.recent_adj || {});
+    d.recent_adj = adj; if (!adj.smap_mean) delete srcs.smap; if (!adj.imerg_ratio) delete srcs.imerg;
+    d.gaps = (d.gaps || []).filter(function (g) { return !/^Recent SMAP\/IMERG/.test(g) && !(adj.smap_mean != null && /^Live location: SMAP/.test(g)) && !(adj.imerg_ratio != null && /^Live location: (GPM )?IMERG/.test(g)); });
+    if (adj.smap_mean || adj.imerg_ratio) d.gaps.push("Recent SMAP/IMERG readings (last " + days + " days only) nudge the water supply by at most 7.5% each (soil wetness and rain); they never replace the long weather record.");
+    return !same;
+  }
+
   // Rough starting suggestion only; the user can switch the rotation set.
   function suggestPreset(d) {
     function yr(s) { return s.reduce(function (a, r) { return a + r.reduce(function (x, y) { return x + y; }, 0); }, 0) / s.length; }
@@ -141,6 +166,6 @@
     return "tropical_maize";
   }
 
-  var api = { fetchLocation: fetchLocation, parsePower: parsePower, parseSoil: parseSoil, suggestPreset: suggestPreset, applySoil: applySoil, applyNdvi: applyNdvi };
+  var api = { fetchLocation: fetchLocation, parsePower: parsePower, parseSoil: parseSoil, suggestPreset: suggestPreset, applySoil: applySoil, applyNdvi: applyNdvi, applyRecent: applyRecent };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.LiveData = api;
 })(typeof window !== "undefined" ? window : globalThis);

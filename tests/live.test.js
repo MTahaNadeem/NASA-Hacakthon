@@ -54,3 +54,36 @@ console.log("live tests passed");
   const bad = await run("fail"); a2(!bad.soil && bad.gaps[0].startsWith("SoilGrids unavailable"), "a soil failure is recorded as a gap, never thrown");
   console.log("progressive-loading tests passed");
 })().catch(e => { console.error(e); process.exit(1); });
+
+// ---- recent SMAP / IMERG feed the score as a small, capped nudge ----
+(() => {
+  const a = require("assert"), Sc = require("../app/scoring.js"), Lv = require("../app/live.js");
+  const clone = o => JSON.parse(JSON.stringify(o));
+  const mk = () => ({ years: [2020], climate: { rain: [[10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120]] }, sources: { power: "NASA POWER" }, gaps: ["Live location: SMAP soil moisture is not used, so ...", "Live location: GPM IMERG is not used, so ..."] });
+  const crop = JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "../app/rotations.json"))).crops.wheat;
+  const base = Sc.effectiveSupply(crop, mk(), 0);
+  const loc = { indicators: { recent_vs_normal: { rain_mm: 60, window_start: "2026-10-01", window_end: "2026-10-30" } } };       // 2 mm/day
+  const rec = (mm, mean, passes) => ({ window: { days: 30 }, imerg: { valid_days: 30, total_mm: mm }, smap: { valid_passes: passes, mean } });
+  // no recent data: score input unchanged
+  a.strictEqual(Sc.effectiveSupply(crop, Object.assign(mk(), { recent_adj: {} }), 0), base);
+  // wetter soil than neutral raises supply, drier lowers it, both within half the full SMAP range (+-7.5%)
+  const wet = mk(), dry = mk(); Lv.applyRecent(wet, rec(60, 0.45, 8), loc); Lv.applyRecent(dry, rec(60, 0.05, 8), loc);
+  a(Sc.effectiveSupply(crop, wet, 0) > base && Sc.effectiveSupply(crop, dry, 0) < base, "SMAP moves the water supply the right way");
+  a(Sc.effectiveSupply(crop, wet, 0) <= base * 1.0751 && Sc.effectiveSupply(crop, dry, 0) >= base * 0.9249, "SMAP nudge is capped at 7.5%");
+  // IMERG heavier than POWER raises supply, but never by more than 7.5%
+  const rainy = mk(); Lv.applyRecent(rainy, rec(600, null, 0), loc);
+  a(rainy.recent_adj.imerg_ratio > 1.5 && rainy.sources.imerg, "IMERG used"); a(Sc.effectiveSupply(crop, rainy, 0) <= base * 1.0751 && Sc.effectiveSupply(crop, rainy, 0) > base);
+  // a few SMAP passes are not enough evidence; IMERG with too few days is ignored; both leave the old gap notes in place
+  const thin = mk(); a.strictEqual(Lv.applyRecent(thin, { window: { days: 30 }, imerg: { valid_days: 4, total_mm: 9 }, smap: { valid_passes: 2, mean: 0.4 } }, loc), false);
+  a(!thin.sources.smap && !thin.sources.imerg && thin.gaps.length === 2, "thin evidence is not used and the gap notes stay");
+  // used sources are listed and the stale 'not used' gap notes are replaced by an honest capped-adjustment note
+  const both = mk(); a.strictEqual(Lv.applyRecent(both, rec(60, 0.3, 8), loc), true);
+  a(both.sources.smap && both.sources.imerg && both.gaps.length === 1 && /nudge the water supply by at most 7.5%/.test(both.gaps[0]), JSON.stringify(both.gaps));
+  a.strictEqual(Lv.applyRecent(both, rec(60, 0.3, 8), loc), false, "same input again changes nothing, so no needless re-render");
+  // places with a bundled SMAP climatology keep their own full-weight adjustment
+  const clim = mk(); clim.smap_clim = Array(12).fill(0.45); Lv.applyRecent(clim, rec(60, 0.05, 8), loc);
+  a(Sc.effectiveSupply(crop, clim, 0) > base * 1.08, "bundled climatology wins over the 30-day reading");
+  // survives the scenario clone
+  a.strictEqual(Sc.applyScenario(both, 10, 0).recent_adj.imerg_ratio, both.recent_adj.imerg_ratio);
+  console.log("recent SMAP/IMERG scoring tests passed");
+})();

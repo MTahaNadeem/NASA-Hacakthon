@@ -190,7 +190,7 @@
       if (token !== n.token) return; n.loc = j; n.status = "ok"; renderNasa();
     }).catch(function () { if (token !== n.token) return; n.status = "err"; renderNasa(); });
     // the satellite series is slower (several seconds on first use), so it is a separate call and fills in when ready
-    // Extra evidence from NASA SMAP / IMERG (not used in the score). It is only QUEUED here and started once the soil and MODIS data have
+    // Extra evidence from NASA SMAP / IMERG (used in the score as a small, capped adjustment). It is only QUEUED here and started once the soil and MODIS data have
     // finished: the small free server does all of it, and running everything at once made the NASA job take minutes instead of ~30 s.
     n.recentStatus = NasaPanel.mode() === "backend" ? "queued" : "idle"; n.recentArgs = { lat: d.lat, lon: d.lon, token: token };
     clearTimeout(n.recentTimer); n.recentTimer = setTimeout(startRecent, 60000);
@@ -207,16 +207,19 @@
   }
   /* ---------- loading bar ---------- */
   function stepState(status) { return status === "loading" ? "run" : (status === "err" || status === "none") ? "fail" : status === "ok" ? "done" : "wait"; }
-  function loadingNow() { var n = state.nasa; return !!(NasaPanel.enabled() && state.data && (n.soilStatus === "loading" || n.ndviStatus === "loading")); }
+  function baseLoading() { var n = state.nasa; return !!(NasaPanel.enabled() && state.data && (n.soilStatus === "loading" || n.ndviStatus === "loading")); }
+  // the recent SMAP/IMERG request also feeds the score now, so the result is only final once it has finished too
+  function loadingNow() { var n = state.nasa; return baseLoading() || !!(NasaPanel.enabled() && state.data && (n.recentStatus === "queued" || n.recentStatus === "loading")); }
   function renderLoadBar(justFinished) {
     var bar = $("loadbar"), n = state.nasa; if (!bar) return;
     var on = state.provisional, steps = [["load.weather", state.data ? "done" : "run"], ["load.soil", stepState(n.soilStatus)], ["load.sat", stepState(n.ndviStatus)]];
+    if (n.recentStatus !== "idle" && n.recentStatus !== "off") steps.push(["load.rec", n.recentStatus === "queued" ? "wait" : stepState(n.recentStatus)]);
     if (!on && !justFinished && !LB.shown) { bar.hidden = true; return; }
     var done = steps.filter(function (x) { return x[1] === "done" || x[1] === "fail"; }).length, failed = steps.some(function (x) { return x[1] === "fail"; });
     bar.hidden = false; bar.className = "loadbar" + (on ? " run" : "");
     $("lb-title").textContent = t("load.title");
-    $("lb-count").textContent = done + " / 3";
-    $("lb-fill").style.width = Math.max(on ? 8 : 100, Math.round(done / 3 * 100)) + "%";
+    $("lb-count").textContent = done + " / " + steps.length;
+    $("lb-fill").style.width = Math.max(on ? 8 : 100, Math.round(done / steps.length * 100)) + "%";
     $("lb-track").setAttribute("aria-valuenow", String(done));
     $("lb-steps").innerHTML = steps.map(function (x) { return "<li class='" + x[1] + "'>" + esc(t(x[0])) + ": " + esc(t(x[1] === "done" ? "load.s.done" : x[1] === "fail" ? "load.s.fail" : "load.s.run")) + "</li>"; }).join("");
     $("lb-note").textContent = on ? t("load.note") : t(failed ? "load.finalfail" : "load.final");
@@ -227,11 +230,11 @@
     if (now !== state.provisional) {
       state.provisional = now;
       if (state.data) renderAll();
-      if (!now) { LB.shown = true; clearTimeout(LB.timer); renderLoadBar(true); LB.timer = setTimeout(function () { LB.shown = false; renderLoadBar(false); }, 6000); releaseRecent(now); return; }
+      if (!now) { LB.shown = true; clearTimeout(LB.timer); renderLoadBar(true); LB.timer = setTimeout(function () { LB.shown = false; renderLoadBar(false); }, 6000); releaseRecent(baseLoading()); return; }
       LB.shown = false; clearTimeout(LB.timer);
     }
     renderLoadBar(false);
-    releaseRecent(now);
+    releaseRecent(baseLoading());
   }
   // The recent SMAP/IMERG request waits until soil and MODIS are done, so the small server is not asked for everything at once.
   function releaseRecent(loading) {
@@ -248,15 +251,17 @@
     var msg = "";
     if (bad.length) msg = t("cov.failed", { what: bad.join(", ") }) + " ";
     else if (n.soilStatus === "loading" || n.ndviStatus === "loading") msg = t("cov.loading") + " ";
-    el.innerHTML = esc(msg + t("cov.smapimerg")) + (bad.length ? ' <a href="diagnose.html">diagnose.html</a>' : "");
+    var used = state.data.recent_adj && (state.data.recent_adj.smap_mean != null || state.data.recent_adj.imerg_ratio != null);
+    el.innerHTML = esc(msg + t(used ? "cov.smapimerg.used" : n.recentStatus === "queued" || n.recentStatus === "loading" ? "cov.smapimerg.wait" : "cov.smapimerg")) + (bad.length ? ' <a href="diagnose.html">diagnose.html</a>' : "");
     syncLoading();
   }
   function startRecent() {
     var n = state.nasa, a = n.recentArgs; clearTimeout(n.recentTimer);
     if (n.recentStatus !== "queued" || !a || a.token !== n.token) return;
     n.recentStatus = "loading"; renderNasa();
-    NasaPanel.fetchRecent(a.lat, a.lon, function (part) { if (a.token === n.token) { n.recent = part; renderNasa(); } }).then(function (j) { if (a.token !== n.token) return; n.recent = j; n.recentStatus = "ok"; renderNasa(); },
-      function (e) { if (a.token !== n.token) return; n.recentStatus = e && e.code === "not_configured" ? "off" : "err"; if (window.console) console.warn("recent SMAP/IMERG:", e); renderNasa(); });
+    var d0 = state.data, feed = function (r) { if (state.data === d0 && LiveData.applyRecent(d0, r, n.loc)) { renderProfile(); renderAll(); } };
+    NasaPanel.fetchRecent(a.lat, a.lon, function (part) { if (a.token === n.token) { n.recent = part; feed(part); renderNasa(); } }).then(function (j) { if (a.token !== n.token) return; n.recent = j; n.recentStatus = "ok"; feed(j); renderNasa(); syncLoading(); },
+      function (e) { if (a.token !== n.token) return; n.recentStatus = e && e.code === "not_configured" ? "off" : "err"; if (window.console) console.warn("recent SMAP/IMERG:", e); renderNasa(); syncLoading(); });
   }
   function renderNasa() {
     renderCovNote();

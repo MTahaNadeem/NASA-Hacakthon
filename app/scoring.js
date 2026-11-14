@@ -73,14 +73,18 @@
     return clamp(0.5 + 0.35 * crop.soc_effect * (1 + lowBoost), 0, 1);
   }
 
-  // Rain the crop can actually use: 80% of rain in its growing months, nudged by SMAP root-zone moisture when available.
+  // Rain the crop can actually use: 80% of rain in its growing months, nudged by SMAP surface moisture when available.
+  // Places from the bundled files carry a monthly SMAP climatology (full weight, +-15%). Live places only have the last ~30 days of SMAP
+  // and IMERG, which describe now rather than the typical year, so they get half weight (+-7.5% each) and never replace the long record:
+  // IMERG only recalibrates POWER's rain by how far the two differ over that recent window.
   function effectiveSupply(crop, data, y) {
-    var months = growingMonths(crop), rain = sumMonths(data.climate.rain, y, months), smapAdj = 1;
+    var months = growingMonths(crop), rain = sumMonths(data.climate.rain, y, months), smapAdj = 1, ra = data.recent_adj || {};
     if (data.smap_clim) {
       var sm = mean(months.map(function (m) { return data.smap_clim[m - 1]; }).filter(function (v) { return v != null; }));
       if (!isNaN(sm)) smapAdj = clamp(1 + (sm - 0.25) * 0.6, 0.85, 1.15);
-    }
-    return rain * 0.8 * smapAdj;
+    } else if (ra.smap_mean != null) smapAdj = clamp(1 + (ra.smap_mean - 0.25) * 0.3, 0.925, 1.075);
+    var rainAdj = ra.imerg_ratio != null ? 1 + (clamp(ra.imerg_ratio, 0.85, 1.15) - 1) * 0.5 : 1;
+    return rain * rainAdj * 0.8 * smapAdj;
   }
 
   // Typical water gap in mm per year: what rain does not cover (the irrigation need if irrigated).

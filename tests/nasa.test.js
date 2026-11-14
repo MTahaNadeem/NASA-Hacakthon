@@ -56,7 +56,7 @@ const hs = P.html(ms, t, esc); assert.ok(hs.includes("k-third_party") && hs.incl
 const rec = fx("api_recent_lahore.json"), mr = P.model(loc, ndvi, null, rec), hr = P.html(mr, t, esc);
 assert.ok(mr.rec && mr.rec.imerg && mr.rec.smap); assert.strictEqual(mr.rec.imerg.total, "6.6"); assert.strictEqual(mr.rec.smap.date, "2026-11-11");
 assert.ok(hr.includes("6.6 mm in 30 days") && hr.includes("on 2 rainy days") && hr.includes("latest 0.204 m³/m³ on 2026-11-11") && hr.includes("readings on 10 of 27 days"));
-assert.ok(hr.includes(t("nasa.rec.note")) && /not used in the score/.test(hr), "says plainly that these values are not part of the score");
+assert.ok(hr.includes(t("nasa.rec.note")) && /at most 7\.5% each/.test(hr), "says plainly how little these values move the score");
 assert.strictEqual(mr.sources.filter(x => x.label === "nasa.s.imerg" || x.label === "nasa.s.smap").length, 2);
 assert.ok(mr.sources.filter(x => /imerg|smap/.test(x.label)).every(x => x.kind === "satellite_estimate" && x.through), "both are labelled satellite estimates with their data age");
 assert.ok(/Late run/.test(hr) && /preliminary/.test(hr) && /not the root zone/.test(hr), "the preliminary-run and top-soil-only caveats are shown");
