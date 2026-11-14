@@ -18,16 +18,18 @@
     }).then(function (j) { if (timer) clearTimeout(timer); return j; }, function (e) { if (timer) clearTimeout(timer); throw e; });
   }
   function q(lat, lon) { return "?lat=" + encodeURIComponent(lat.toFixed(4)) + "&lon=" + encodeURIComponent(lon.toFixed(4)); }
-  // If the backend is asleep, down or slow, fall back to reading the files in the browser, so a sleeping free server never costs the farmer the data.
+  // Soil and satellite data are read by the browser itself whenever it can (about 9 s for soil, 20 s with MODIS, no cold start).
+  // A free backend sleeps when idle and takes about a minute to wake, so it must never sit in the path of data the farmer is waiting for.
+  // The backend only adds the weather indicators, which load in the background; if it is asleep, the page shows the satellite freshness instead.
   function direct() { return root.DirectData && root.DirectData.available() ? root.DirectData : null; }
-  function viaBackend(path, ms, fallback) {
-    return get(path, ms).catch(function (e) { var d = direct(); if (!d) throw e; return fallback(d); });
+  function fetchLocation(lat, lon) {
+    if (mode() !== "backend") return root.DirectData.status();
+    return get("/api/location" + q(lat, lon), 90000).catch(function (e) { var d = direct(); if (!d) throw e; return d.status(); });
   }
-  function fetchLocation(lat, lon) { return mode() === "backend" ? viaBackend("/api/location" + q(lat, lon), 30000, function (d) { return d.status(); }) : root.DirectData.status(); }
-  function fetchNdvi(lat, lon) { return mode() === "backend" ? viaBackend("/api/ndvi" + q(lat, lon) + "&months=36", 60000, function (d) { return d.ndvi(lat, lon, 36); }) : root.DirectData.ndvi(lat, lon, 36); }
+  function fetchNdvi(lat, lon) { var d = direct(); return d ? d.ndvi(lat, lon, 36) : get("/api/ndvi" + q(lat, lon) + "&months=36", 150000); }
   // Free hosts sleep when idle; touching /api/health as soon as the page opens starts the wake-up while the visitor is still choosing a place.
   function wake() { if (mode() === "backend") get('/api/health', 70000).catch(function () {}); }
-  function fetchSoil(lat, lon) { return mode() === "backend" ? viaBackend("/api/soil" + q(lat, lon), 30000, function (d) { return d.soil(lat, lon); }) : root.DirectData.soil(lat, lon); }
+  function fetchSoil(lat, lon) { var d = direct(); return d ? d.soil(lat, lon) : get("/api/soil" + q(lat, lon), 90000); }
 
   function num(x, d) { return x == null || isNaN(x) ? null : (+x).toFixed(d == null ? 0 : d); }
   function signed(x, d) { var s = num(x, d); return s == null ? null : (x > 0 ? "+" : "") + s; }

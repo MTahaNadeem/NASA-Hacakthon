@@ -58,17 +58,22 @@ global.window = undefined;
 const src = fs.readFileSync(path.join(__dirname, "../app/nasa.js"), "utf8") + fs.readFileSync(path.join(__dirname, "../app/config.js"), "utf8");
 assert.ok(!/token|password|bearer|earthdata/i.test(src.replace(/NASA Earthdata logins and tokens belong ONLY[^*]*/i, "").replace(/Earthdata/g, "")) , "no secrets or auth in the client");
 
-// 9. backend asleep or down: the browser engine takes over, and is not used when the backend answers
+// 9. the browser engine serves soil and satellite data even when a backend is configured, so a sleeping backend never delays them
 (async () => {
   const calls = []; global.AGRISHIFT = { backendUrl: "http://backend.example" };
-  global.DirectData = { available: () => true, soil: async () => (calls.push("direct.soil"), { soil: { ph: 1 }, from: "browser" }), ndvi: async () => (calls.push("direct.ndvi"), { from: "browser" }), status: async () => (calls.push("direct.status"), { from: "browser" }) };
-  global.fetch = async () => { throw new Error("backend asleep"); };
+  global.DirectData = { available: () => true, soil: async () => (calls.push("direct.soil"), { from: "browser" }), ndvi: async () => (calls.push("direct.ndvi"), { from: "browser" }), status: async () => (calls.push("direct.status"), { from: "browser" }) };
+  let fetched = 0; global.fetch = async () => { fetched++; throw new Error("backend asleep"); };
   assert.strictEqual(P.mode(), "backend");
-  assert.strictEqual((await P.fetchSoil(1, 2)).from, "browser"); assert.strictEqual((await P.fetchNdvi(1, 2)).from, "browser"); assert.strictEqual((await P.fetchLocation(1, 2)).from, "browser");
-  calls.length = 0; global.fetch = async () => ({ ok: true, json: async () => ({ from: "backend" }) });
-  assert.strictEqual((await P.fetchSoil(1, 2)).from, "backend"); assert.deepStrictEqual(calls, [], "browser engine not used while the backend answers");
-  delete global.DirectData; global.fetch = async () => { throw new Error("backend asleep"); };
-  await assert.rejects(() => P.fetchSoil(1, 2), /backend asleep/);   // nothing to fall back on: the error is reported, never hidden
+  assert.strictEqual((await P.fetchSoil(1, 2)).from, "browser"); assert.strictEqual((await P.fetchNdvi(1, 2)).from, "browser");
+  assert.strictEqual(fetched, 0, "the backend is not called for soil or satellite data");
+  // weather indicators come from the backend; if it is asleep the page falls back to the satellite freshness
+  assert.strictEqual((await P.fetchLocation(1, 2)).from, "browser"); assert.strictEqual(fetched, 1);
+  global.fetch = async () => ({ ok: true, json: async () => ({ from: "backend" }) });
+  assert.strictEqual((await P.fetchLocation(1, 2)).from, "backend");
+  // no browser engine (very old browser): the backend is used for everything and errors are reported, never hidden
+  delete global.DirectData; assert.strictEqual((await P.fetchSoil(1, 2)).from, "backend");
+  global.fetch = async () => { throw new Error("backend asleep"); };
+  await assert.rejects(() => P.fetchSoil(1, 2), /backend asleep/); await assert.rejects(() => P.fetchLocation(1, 2), /backend asleep/);
   delete global.AGRISHIFT; delete global.fetch;
   console.log("nasa panel tests passed");
 })();
