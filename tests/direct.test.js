@@ -29,5 +29,9 @@ raw["soc|5-15cm|q05"] = null; soil = T.combine(raw); assert.ok(!("soc" in soil) 
 assert.deepStrictEqual(T.pixel(38.5, -98.0), [35968, 16300]); assert.deepStrictEqual(T.pixel(31.45, 74.10), [109909, 19440]);
 // MODIS sinusoidal: equator/prime meridian is the origin, longitude shrinks with latitude
 assert.deepStrictEqual(T.sinu(0, 0), [0, 0]); assert.ok(T.sinu(60, 10)[0] < T.sinu(0, 10)[0] * 0.51);
+// a total read failure is recognised (so it is never cached or trusted), but cloud-only gaps are not mistaken for it
+assert.strictEqual(T.allReadsFailed([{ reason: "read failed: TypeError" }, { reason: "read failed: TypeError" }]), true);
+assert.strictEqual(T.allReadsFailed([{ reason: "read failed: TypeError" }, { reason: "pixel reliability too low (rank 3)" }]), false);
+assert.strictEqual(T.allReadsFailed([{ reason: "no data (cloud, water or fill)" }]), false); assert.strictEqual(T.allReadsFailed([]), false);
 assert.strictEqual(D.available(), false);   // not in a browser
 console.log("direct engine tests passed");

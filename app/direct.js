@@ -38,7 +38,7 @@
   }
   // Results are kept in this browser for a while so a revisit is instant. Storage can be blocked, so every access is guarded.
   function stash(key, ttlMs, loader) {
-    var k = "agri.direct.v1:" + key, now = Date.now();
+    var k = "agri.direct.v2:" + key, now = Date.now();
     try { var s = JSON.parse(localStorage.getItem(k) || "null"); if (s && now - s.t < s.ttl) { s.v.__cached = true; return Promise.resolve(s.v); } } catch (e) { /* ignore */ }
     return loader().then(function (v) { try { localStorage.setItem(k, JSON.stringify({ t: now, ttl: ttlMs, v: v })); } catch (e) { /* full or blocked: fine */ } return v; });
   }
@@ -174,6 +174,8 @@
       return readPixel(img, col, row).then(function (v) { return { v: v, col: col, row: row }; });
     });
   }
+  // True when every composite failed to READ (as opposed to being cloudy): the browser cannot read the files at all.
+  function allReadsFailed(rows) { return !!(rows && rows.length && rows.every(function (r) { return /^read failed/.test(r.reason || ""); })); }
   function monthlyNdvi(rows) {
     var b = []; for (var m = 0; m < 12; m++) b.push([]);
     rows.forEach(function (r) { if (r.ndvi == null || !r.start) return; var d = new Date(Date.parse(r.start) + 8 * 86400000); b[d.getUTCMonth()].push(r.ndvi); });
@@ -198,11 +200,13 @@
         // servers do not give for range requests), stop at once instead of firing hundreds of doomed requests, so the caller can use the backend.
         if (!items.length) return [];
         return readItem(items[0]).then(function (first) {
-          if (/^read failed/.test(first.reason || "")) throw new Error("this browser could not read the MODIS files");
+          if (allReadsFailed([first])) throw new Error("this browser could not read the MODIS files");
           return mapLimit(items.slice(1), 10, readItem).then(function (rest) { return [first].concat(rest); });
         });
       });
     }).then(function (rows) {
+      // Never trust a cached total failure (older versions stored one): reject so the caller can use the backend.
+      if (allReadsFailed(rows)) { try { localStorage.removeItem("agri.direct.v2:" + key); } catch (e) { /* ignore */ } throw new Error("this browser could not read the MODIS files"); }
       var cached = !!rows.__cached; rows = rows.slice ? rows : [];
       rows.sort(function (a, b) { return a.start < b.start ? -1 : 1; });
       var good = rows.filter(function (r) { return r.ndvi != null; }), through = good.reduce(function (m, r) { return r.end > m ? r.end : m; }, ""), clim = monthlyNdvi(rows);
@@ -230,6 +234,6 @@
     });
   }
 
-  var api = { available: available, soil: soil, ndvi: ndvi, status: status, _t: { combine: combine, classify: classify, parseItems: parseItems, monthlyNdvi: monthlyNdvi, sinu: sinu, pixel: pixel } };
+  var api = { available: available, soil: soil, ndvi: ndvi, status: status, _t: { allReadsFailed: allReadsFailed, combine: combine, classify: classify, parseItems: parseItems, monthlyNdvi: monthlyNdvi, sinu: sinu, pixel: pixel } };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.DirectData = api;
 })(typeof window !== "undefined" ? window : globalThis);
