@@ -117,8 +117,13 @@
       var ends = [[soil.ph.q05, soil.clay.q05], [soil.ph.q05, soil.clay.q95],
                   [soil.ph.q95, soil.clay.q05], [soil.ph.q95, soil.clay.q95]]
         .map(function (p) { return fitScore(crop, soil, p[0], p[1]); });
-      if (soilMode === "mid") out.fit = fitScore(crop, soil, soil.ph.mean, soil.clay.mean);
-      else out.fit = soilMode === "low" ? Math.min.apply(null, ends) : Math.max.apply(null, ends);
+      var centre = fitScore(crop, soil, soil.ph.mean, soil.clay.mean);
+      // The plausible range always includes the central estimate. Without it, a crop whose preferred pH lies BETWEEN the 5th and 95th
+      // percentile (e.g. pH 7 for soil spanning 5.1-8.6) scored higher at the typical value than at either extreme, so the "optimistic" case
+      // came out below the typical one and the uncertainty range did not contain its own average (found with real Faisalabad soil data).
+      var all = ends.concat([centre]);
+      if (soilMode === "mid") out.fit = centre;
+      else out.fit = soilMode === "low" ? Math.min.apply(null, all) : Math.max.apply(null, all);
     } else out.fit = null;
 
     if (soil.soc) {
