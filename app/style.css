@@ -487,3 +487,8 @@ body.mode-app{background:#f3f1e8}
   .d-farm .step1grid{grid-template-columns:minmax(0,1fr)}
 }
 @media print{.side,.apptop,#site{display:none!important}.appmain{margin:0}}
+
+/* confidence explained next to the badge */
+.confbox{margin:10px 0 12px;padding:10px 14px;border-radius:10px;background:var(--soft);border-inline-start:4px solid var(--accent)}
+.confbox.conf-medium{border-color:#d9a13b;background:var(--amber-soft)}.confbox.conf-low{border-color:var(--bad);background:#fdf0ee}
+.confbox p{margin:0}.confbox .mini{margin-top:4px}

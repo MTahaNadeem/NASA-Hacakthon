@@ -717,9 +717,18 @@
   }
   function li(a, cls) { return a.map(function (x) { return "<li" + (cls ? " class='" + cls + "'" : "") + ">" + esc(x) + "</li>"; }).join(""); }
   // While weather/soil/satellite data are still arriving the label would flip as data lands, so it says "updating" until the end.
+  // Explains the confidence label where it is read: the reasons, what the label means, and what the user can do about it.
+  // Held back while data is still arriving, because the reasons (for example "no soil data") are about to change.
+  function confBox(c) {
+    if (state.provisional) return "";
+    var why = c.reasons.length ? c.reasons.map(function (k) { return t(k); }).join("; ") : t("conf.r.none");
+    var tip = c.level !== "high" && state.irr === "u" ? " " + t("conf.tip") : "";
+    return "<div class='confbox conf-" + c.level + "'><p><b>" + esc(t("sum.why")) + ":</b> " + esc(why) + "</p><p class='mini'>" + esc(t("conf.explain") + tip) + "</p></div>";
+  }
   function confPill(c, final) {
     if (!final && state.provisional) return "<span class='pill conf conf-pending'>" + esc(t("conf.pending")) + "</span>";
-    return "<span class='pill conf conf-" + c.level + "'>" + esc(t("conf.badge", { level: t("conf." + c.level) })) + "</span>";
+    var why = c.level === "high" ? "" : " title='" + esc(c.reasons.map(function (k) { return t(k); }).join("; ")) + "'";
+    return "<span class='pill conf conf-" + c.level + "'" + why + ">" + esc(t("conf.badge", { level: t("conf." + c.level) })) + "</span>";
   }
 
   // ---- plain-language layer: turn the six factor scores into short sentences a farmer can read ----
@@ -748,10 +757,8 @@
     var nb = top.noClearWinner ? out.results.filter(function (r) { return r.id !== top.id && r.noClearWinner; })[0] : null;
     var ask = ins.flags.filter(function (f) { return f !== t("flag.synth"); }).slice(0, 3);
     $("summary").innerHTML = "<div class='summary'><p class='kick'>" + esc(t("sum.best")) + "</p><div class='sumtop'><h3><bdi>" + esc(rotLabel(top.id)) + "</bdi></h3>" + confPill(conf) + "</div>" +
-      fitRow(top) + "<p>" + esc(line) + "</p>" + (nb ? "<p class='flag'>" + esc(t("sum.close", { a: rotLabel(top.id), b: rotLabel(nb.id) })) + "</p>" : "") +
+      confBox(conf) + fitRow(top) + "<p>" + esc(line) + "</p>" + (nb ? "<p class='flag'>" + esc(t("sum.close", { a: rotLabel(top.id), b: rotLabel(nb.id) })) + "</p>" : "") +
       whyBlock(plain(fb)) +
-      // while data is still arriving these reasons (e.g. "no soil data") are about to change, so they are held back until the result is final
-      (state.provisional ? "" : "<p class='why'><b>" + esc(t("sum.why")) + ":</b> " + esc((conf.reasons.length ? conf.reasons.map(function (k) { return t(k); }).join("; ") : t("conf.r.none"))) + "</p>") +
       "<div class='ask'><h4>" + esc(t("sum.ask")) + "</h4><ul>" + li(ask) + "</ul></div></div>";
   }
 
