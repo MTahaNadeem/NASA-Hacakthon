@@ -19,3 +19,27 @@ assert.strictEqual(L.suggestPreset(mk(60, 0)), "temperate_corn");
 assert.strictEqual(L.suggestPreset(mk(5, 50)), "south_asia_wheat");
 assert.strictEqual(L.suggestPreset(mk(0, 5)), "tropical_maize");
 console.log("live tests passed");
+
+// ---- progressive loading: weather must not wait for slow soil ----
+(async () => {
+  const L2 = require("../app/live.js"), a2 = require("assert");
+  const days2 = {}; for (let y = 2004; y <= 2023; y++) for (const m of ["01", "07"]) days2[`${y}${m}10`] = 1;
+  const power = { properties: { parameter: { PRECTOTCORR: days2, T2M: days2, T2M_MAX: days2, T2M_MIN: days2 } } };
+  const soilOk = { properties: { layers: ["phh2o", "soc", "sand", "silt", "clay"].map(n => ({ name: n, unit_measure: { d_factor: 10 }, depths: [{ label: "0-5cm", values: { "Q0.05": 70, mean: 75, "Q0.95": 80 } }] })) } };
+  const run = async (soilBehaviour) => {
+    global.fetch = async (url) => {
+      if (/power\.larc/.test(url)) return { ok: true, json: async () => power };
+      await new Promise(r => setTimeout(r, 150));                     // slow soil server
+      if (soilBehaviour === "fail") throw new TypeError("Failed to fetch");
+      return { ok: true, json: async () => soilOk };
+    };
+    const t0 = Date.now(), d = await L2.fetchLocation(31.55, 74.34, () => {}), tWeather = Date.now() - t0;
+    a2(tWeather < 120, "weather result must arrive before the slow soil does (" + tWeather + " ms)");
+    a2.strictEqual(d.soilDone, false); a2(!d.soil, "no soil yet"); a2(d.sources.power && !d.sources.soilgrids);
+    const same = await d.soilPromise; a2.strictEqual(same, d, "soilPromise resolves with the same object"); a2.strictEqual(d.soilDone, true);
+    return d;
+  };
+  const ok = await run("ok"); a2(ok.soil && ok.soil.ph && ok.sources.soilgrids, "soil is added when it arrives");
+  const bad = await run("fail"); a2(!bad.soil && bad.gaps[0].startsWith("SoilGrids unavailable"), "a soil failure is recorded as a gap, never thrown");
+  console.log("progressive-loading tests passed");
+})().catch(e => { console.error(e); process.exit(1); });

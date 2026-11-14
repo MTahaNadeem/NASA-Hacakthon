@@ -76,30 +76,32 @@
     return withTimeout(soilUrl(lat, lon, SOIL_ALL), 45000).then(parseSoil).then(function (s) { return s.ph ? { soil: s, km: 0 } : nearbySoil(lat, lon); });
   }
 
-  // Resolves with a data object shaped like app/data/<id>.json. Soil failure is non-fatal; POWER failure is fatal.
+  // Resolves as soon as the weather (NASA POWER) is in, with a data object shaped like app/data/<id>.json. Soil from SoilGrids is slow
+  // (a city point can hang for minutes), so it is fetched in the background: d.soilPromise resolves with the SAME object once soil has been
+  // added (or its absence recorded under d.gaps), and d.soilDone becomes true. POWER failure is fatal; soil failure never is.
   function fetchLocation(lat, lon, onStatus) {
     onStatus = onStatus || function () {};
     lat = Math.round(lat * 100) / 100; lon = Math.round(lon * 100) / 100;
     onStatus("st.fetchPower");
     return fetchPower(lat, lon).then(function (climate) {
-      onStatus("st.fetchSoil");
-      return fetchSoil(lat, lon).then(function (r) { return [climate, r, null]; }, function (e) { return [climate, null, e.message]; });
-    }).then(function (r) {
       var years = []; for (var y = Y0; y <= Y1; y++) years.push(y);
-      var gaps = [
-        "Live location: MODIS NDVI is not used, so the bare-field factor is dropped.",
-        "Live location: SMAP soil moisture is not used, so no soil-moisture adjustment is applied to the water factor.",
-        "Live location: GPM IMERG is not used, so extreme-rain days come from POWER rainfall and rain is not cross-checked."
-      ];
-      var d = { synthetic: false, live: true, id: "custom", name: "Custom location", lat: lat, lon: lon, years: years, climate: r[0],
-        gaps: gaps, sources: { power: "NASA POWER" },
+      var d = { synthetic: false, live: true, id: "custom", name: "Custom location", lat: lat, lon: lon, years: years, climate: climate,
+        gaps: [
+          "Live location: MODIS NDVI is not used, so the bare-field factor is dropped.",
+          "Live location: SMAP soil moisture is not used, so no soil-moisture adjustment is applied to the water factor.",
+          "Live location: GPM IMERG is not used, so extreme-rain days come from POWER rainfall and rain is not cross-checked."
+        ], sources: { power: "NASA POWER" }, soilDone: false,
         rain_crosscheck: { power_vs_imerg_pct_diff: null, note: "Live location: POWER was not cross-checked against IMERG." },
         resolution_note: "POWER ~0.5 deg (~50 km); SoilGrids 250 m. Results describe the surrounding area, not one field." };
-      if (r[1] && r[1].soil && r[1].soil.ph) {
-        d.soil = r[1].soil; d.soil_units = UNITS; d.sources.soilgrids = "SoilGrids (ISRIC)";
-        if (r[1].km) gaps.push("Soil values come from a farmland cell about " + r[1].km + " km from the pin, because the pin is on built-up land or water where SoilGrids has no data.");
-      }
-      else gaps.unshift("SoilGrids unavailable for this point (" + (r[2] || "no soil data, e.g. water or urban area") + "): soil fit and soil-carbon factors are dropped.");
+      var finish = function (r, err) {
+        if (r && r.soil && r.soil.ph) {
+          d.soil = r.soil; d.soil_units = UNITS; d.sources.soilgrids = "SoilGrids (ISRIC)";
+          if (r.km) d.gaps.push("Soil values come from a farmland cell about " + r.km + " km from the pin, because the pin is on built-up land or water where SoilGrids has no data.");
+        } else d.gaps.unshift("SoilGrids unavailable for this point (" + (err || "no soil data, e.g. water or urban area") + "): soil fit and soil-carbon factors are dropped.");
+        d.soilDone = true; return d;
+      };
+      onStatus("st.fetchSoil");
+      d.soilPromise = fetchSoil(lat, lon).then(function (r) { return finish(r, null); }, function (e) { return finish(null, e.message); });
       return d;
     });
   }

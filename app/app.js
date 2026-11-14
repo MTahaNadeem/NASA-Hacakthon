@@ -301,7 +301,16 @@
       state.loading = false; state.data = d; buildCfg(d.lat, d.lon);
       var key = opts.preset || LiveData.suggestPreset(d); $("preset").value = key; $("presetrow").hidden = false;
       state.loc = { id: "custom", placeId: opts.placeId || null, label: opts.label || null, mine: !!opts.mine, name: "", lat: d.lat, lon: d.lon };
-      renderBanner(); setStatus("st.loaded", { name: locName() }); renderProfile(); applyPreset(key);
+      renderBanner(); renderProfile(); applyPreset(key);
+      // Weather is in, so show the answer now. Soil arrives later (SoilGrids is slow) and the page updates itself.
+      if (d.soilDone) setStatus("st.loaded", { name: locName() });
+      else {
+        setStatus("st.fetchSoil");
+        d.soilPromise.then(function () {
+          if (token !== state.loadToken || state.data !== d) return;   // the user has moved on
+          setStatus("st.loaded", { name: locName() }); renderProfile(); renderAll();
+        });
+      }
     }).catch(function (e) {
       if (token !== state.loadToken) return;
       state.loading = false;
@@ -695,6 +704,7 @@
       var ps = state.cfgRaw.presets[p.preset || LiveData.suggestPreset(d)];
       state.cmp = { placeId: p.id, data: d, ids: cached ? cached.rotation_ids : ps.ids, current: cached ? cached.current_rotation : ps.current };
       renderCompare(); writeUrl();
+      if (d.soilPromise && !d.soilDone) d.soilPromise.then(function () { if (token === state.cmpToken) renderCompare(); });
     }).catch(function (e) {
       if (token !== state.cmpToken) return;
       state.cmp = { placeId: p.id, error: e.message === "NO_LAND" ? t("st.noland") : e.message }; renderCompare();

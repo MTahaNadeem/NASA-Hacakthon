@@ -77,7 +77,8 @@ console.log("scoring tests passed");
   const t0 = JSON.parse(JSON.stringify(data)); t0.climate.heat_by_dt = { "0": t0.climate.heat_days, "2": t0.climate.heat_days.map(r => r.map(v => v + 3)) }; t0.climate.frost_by_dt = { "0": t0.climate.frost_days, "2": t0.climate.frost_days.map(r => r.map(() => 0)) };
   const w2 = S2.applyScenario(t0, 0, 2); assert.strictEqual(w2.climate.heat_days[0][0], t0.climate.heat_days[0][0] + 3); assert.strictEqual(w2.climate.frost_days[0][0], 0);
   assert.strictEqual(S2.applyScenario(t0, 0, 3), t0, "no counts for +3 -> unchanged");
-  assert.strictEqual(S2.applyScenario(data, 0, 2), data, "data without threshold counts -> unchanged"); assert.strictEqual(S2.hasTemperatureScenario(data), !!(data.climate.heat_by_dt));
+  const noCounts = JSON.parse(JSON.stringify(data)); delete noCounts.climate.heat_by_dt; delete noCounts.climate.frost_by_dt;
+  assert.strictEqual(S2.applyScenario(noCounts, 0, 2), noCounts, "data without threshold counts -> unchanged"); assert.strictEqual(S2.hasTemperatureScenario(data), !!(data.climate.heat_by_dt));
   // more heat never improves a heat-sensitive crop's heat score
   const hot = S2.rankRotations(c2, S2.applyScenario(t0, 0, 2), ids, base).results, cool = S2.rankRotations(c2, t0, ids, base).results;
   assert(hot.reduce((a, x) => a + x.mean, 0) <= cool.reduce((a, x) => a + x.mean, 0) + 1e-9);
