@@ -11,7 +11,8 @@
 
   function parse() {
     var h = (location.hash || "").replace(/^#\/?/, "").replace(/\/+$/, "");
-    if (!h && /[?&](loc|lat|lon)=/.test(location.search)) h = "app";
+    // a shared result link has place parameters and NO hash at all; an explicit "#/" always means the home page
+    if (!location.hash && /[?&](loc|lat|lon)=/.test(location.search)) h = "app";
     if (!h) h = "home";
     return known[h] ? h : "home";
   }
