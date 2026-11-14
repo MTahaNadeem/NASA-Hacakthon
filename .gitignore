@@ -3,3 +3,6 @@ __pycache__/
 *.pyc
 .env
 node_modules/
+backend/cache.sqlite3
+*.sqlite3
+.pytest_cache/

@@ -1,0 +1,22 @@
+name: tests
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Frontend and scoring tests
+        run: for f in tests/*.test.js; do node "$f"; done
+      - name: Backend tests (real captured fixtures, no network)
+        run: |
+          pip install -r backend/requirements.txt
+          cd backend && python -m pytest tests -q
+      - name: Pipeline tests
+        run: |
+          pip install requests pandas numpy
+          python tests/test_build_cache.py
+          python tests/test_appeears.py

@@ -4,11 +4,12 @@
   "use strict";
   var t = I18N.t;
   var SRC = ["power", "soilgrids", "modis", "smap", "imerg"], SRC_NAME = { power: "NASA POWER", soilgrids: "SoilGrids", modis: "MODIS", smap: "SMAP", imerg: "GPM IMERG" };
-  var TABS = ["profile", "cal", "whatif", "rules", "mine", "cmp"];
+  var TABS = ["profile", "cal", "whatif", "rules", "mine", "cmp", "nasa"];
   var state = { cfgRaw: null, cfgBase: null, cfg: null, index: [], places: [], loc: null, data: null, presetKey: null,
     sl: { water: .5, income: .5, soil: .5 }, rainDelta: 0, tempDelta: 0, irr: "u", overrides: {},
     map: null, markers: {}, customMarker: null, pin: null, loading: false, loadToken: 0, tab: "rot", status: null,
-    cmp: null, cmpToken: 0, printOpen: [], urlTimer: null };
+    cmp: null, cmpToken: 0, printOpen: [], urlTimer: null,
+    nasa: { status: "idle", key: null, loc: null, ndvi: null, ndviStatus: "idle", token: 0 } };
   state.tab = "profile"; state.mine = [];
   var $ = function (id) { return document.getElementById(id); };
   var mean = Scoring.mean;
@@ -169,8 +170,37 @@
     return I18N.set(code).then(function () {
       I18N.remember(I18N.lang()); applyStatic(); buildPresetOptions(); buildLocationList(); buildCmpOptions(); renderStatus(); renderMapTips(); renderHow(); renderRules(); renderMine();
       if (state.data) { renderBanner(); renderProfile(); renderAll(); }
+      renderNasa();
       writeUrl();
     });
+  }
+
+  /* ---------- NASA data backend (optional; the app works without it) ----------
+   * The browser sends only lat/lon. Any NASA login lives on the server, never here. */
+  function loadNasa() {
+    var d = state.data, n = state.nasa;
+    $("t-nasa").hidden = !NasaPanel.enabled();
+    if (!d || !NasaPanel.enabled()) { n.status = d ? "off" : "idle"; renderNasa(); return; }
+    var key = d.lat.toFixed(4) + "," + d.lon.toFixed(4);
+    if (n.key === key && n.status !== "err") return;            // same place, nothing to do
+    var token = ++n.token; n.key = key; n.status = "loading"; n.ndviStatus = "loading"; n.loc = null; n.ndvi = null; renderNasa();
+    NasaPanel.fetchLocation(d.lat, d.lon).then(function (j) {
+      if (token !== n.token) return; n.loc = j; n.status = "ok"; renderNasa();
+    }).catch(function () { if (token !== n.token) return; n.status = "err"; renderNasa(); });
+    // the satellite series is slower (several seconds on first use), so it is a separate call and fills in when ready
+    NasaPanel.fetchNdvi(d.lat, d.lon).then(function (j) {
+      if (token !== n.token) return; n.ndvi = j; n.ndviStatus = "ok"; renderNasa();
+    }).catch(function () { if (token !== n.token) return; n.ndviStatus = "err"; renderNasa(); });
+  }
+  function renderNasa() {
+    var el = $("nasa"), n = state.nasa; if (!el) return;
+    $("t-nasa").hidden = !NasaPanel.enabled();
+    if (!state.data) { el.innerHTML = "<p class='mini'>" + esc(t("nasa.pick")) + "</p>"; return; }
+    if (n.status === "off") { el.innerHTML = "<p class='mini'>" + esc(t("nasa.off")) + "</p>"; return; }
+    var body = NasaPanel.html(NasaPanel.model(n.loc, n.ndvi), t, esc), notes = "";
+    if (n.status === "loading" || (n.status === "ok" && n.ndviStatus === "loading")) notes += "<p class='mini'>" + esc(t("nasa.loading")) + "</p>";
+    if (n.status === "err" || n.ndviStatus === "err") notes += "<p class='mini nasa-err' role='alert'>" + esc(t("nasa.err")) + "</p>";
+    el.innerHTML = notes + body;
   }
 
   /* ---------- decorative hero art (no data) ---------- */
@@ -187,7 +217,7 @@
     Promise.all([getJSON("rotations.json"), getJSON("data/index.json"), I18N.set(code), getJSON("places.json")]).then(function (r) {
       state.cfgRaw = r[0]; state.cfg = r[0]; state.cfgBase = r[0]; state.index = r[1]; state.places = r[3];
       var u = readUrl();
-      applyStatic(); buildPresetOptions(); buildLocationList(); buildCmpOptions(); buildMap(); bindInputs(); bindTabs(); bindShare(); bindPwa(); renderHow(); renderMine(); syncControls(); setTab(state.tab, true);
+      applyStatic(); buildPresetOptions(); buildLocationList(); buildCmpOptions(); buildMap(); bindInputs(); bindTabs(); bindShare(); bindPwa(); renderHow(); renderMine(); syncControls(); setTab(state.tab, true); renderNasa();
       var place = u.loc && findPlace(u.loc);
       if (place) selectPlace(place);
       else if (u.lat != null && u.lon != null) loadCustom(u.lat, u.lon, { preset: u.preset && state.cfgRaw.presets[u.preset] ? u.preset : null });
@@ -277,7 +307,7 @@
       state.loadToken++; state.data = d; state.loc = Object.assign({}, l, { placeId: id }); state.presetKey = null;
       buildCfg(d.lat, d.lon); $("presetrow").hidden = true; setStatus(null);
       markPressed(id); placePin(d.lat, d.lon, true);
-      renderBanner(); renderProfile(); renderRules(); renderAll(); renderMapBar();
+      renderBanner(); renderProfile(); renderRules(); renderAll(); renderMapBar(); loadNasa();
     });
   }
   function applyPreset(key) {
@@ -301,7 +331,7 @@
       state.loading = false; state.data = d; buildCfg(d.lat, d.lon);
       var key = opts.preset || LiveData.suggestPreset(d); $("preset").value = key; $("presetrow").hidden = false;
       state.loc = { id: "custom", placeId: opts.placeId || null, label: opts.label || null, mine: !!opts.mine, name: "", lat: d.lat, lon: d.lon };
-      renderBanner(); renderProfile(); applyPreset(key);
+      renderBanner(); renderProfile(); applyPreset(key); loadNasa();
       // Weather is in, so show the answer now. Soil arrives later (SoilGrids is slow) and the page updates itself.
       if (d.soilDone) setStatus("st.loaded", { name: locName() });
       else {

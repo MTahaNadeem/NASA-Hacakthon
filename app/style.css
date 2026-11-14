@@ -281,3 +281,18 @@ code{background:var(--soft);padding:1px 6px;border-radius:6px;font-size:.9em}
 .mineyear legend{font-weight:700;padding-inline:6px}
 .mineyear label{display:block;margin-block-start:10px;font-weight:600;font-size:.95rem}
 .mineyear select{margin-block-start:6px}
+
+/* NASA data panel (backend-supplied numbers with their provenance) */
+.nasa-card{border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-block-start:12px;background:var(--surface,#fff)}
+.nasa-card h4{margin:0 0 6px;font-size:1rem}.nasa-card h4 small{font-weight:500;color:var(--muted);margin-inline-start:6px}
+.nasa-card ul{margin:6px 0 0;padding-inline-start:18px}.nasa-card li{margin:3px 0}
+.nasa-src{list-style:none;padding-inline-start:0!important}.nasa-src li{padding:4px 0;border-block-end:1px solid var(--line)}.nasa-src li:last-child{border:0}
+.nasa-src small{color:var(--muted)}
+.kind{display:inline-block;padding:1px 9px;border-radius:999px;font-size:.74rem;font-weight:700;border:1px solid var(--line);color:var(--muted);margin-inline-end:6px}
+.kind.k-reanalysis{background:#fff4d6;color:#7a5a00;border-color:transparent}
+.kind.k-satellite_estimate{background:#e1f0ff;color:#14507f;border-color:transparent}
+.kind.k-calculated{background:#ece8ff;color:#47328f;border-color:transparent}
+.kind.k-observation{background:var(--accent-soft);color:var(--accent-dark);border-color:transparent}
+.spark{display:block;width:100%;height:64px;color:var(--accent-dark);margin:6px 0}
+.nasa-tech{font-size:.82rem;color:var(--muted)}.nasa-card details{margin-block-start:10px}.nasa-card summary{cursor:pointer;font-weight:600}
+.nasa-err{color:#8a1c1c}

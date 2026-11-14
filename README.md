@@ -11,10 +11,18 @@ Hero case: wheat-wheat in Punjab (Faisalabad) vs. legume and oilseed rotations. 
 | Part | State |
 |---|---|
 | Scoring engine (`app/scoring.js`) | Built, unit-tested (`node tests/scoring.test.js`) |
-| Web app (`app/`) | Built, checked in a headless browser |
-| `pipeline/build_cache.py` | Built, tested on small fixtures only |
-| `fetch_power.py`, `fetch_soilgrids.py`, `appeears.py`, `fetch_imerg.py` | Written from the API docs, **never run** (the build sandbox had no network). Expect small fixes, especially AppEEARS layer names and IMERG access. |
-| Data in `app/data/` | **Synthetic placeholders** from `make_placeholder.py`. The app shows a red banner. Not NASA data. |
+| Web app (`app/`) | Built, 10 languages, checked in a headless browser |
+| Any-place lookup in the browser | **Works:** NASA POWER (no key) and SoilGrids (ISRIC, not NASA), fetched live |
+| **NASA data backend (`backend/`)** | **New.** POWER and MODIS NDVI verified live with no login. SMAP and IMERG: newest-acquisition discovery only, values not served yet. See `backend/README.md` |
+| `pipeline/` (offline cache builder) | POWER and SoilGrids ran; AppEEARS (MODIS/SMAP) needs an Earthdata login on your own machine; IMERG is optional and slow |
+| Data in `app/data/` | **Real NASA POWER** for Faisalabad and Ames. Soil, MODIS, SMAP and IMERG are not in those files, and the app says so in its data-gap notes |
+
+## NASA data architecture
+
+Farmers never log in and no NASA credential is ever in the browser. The browser sends only a latitude and longitude to
+the backend, which fetches real NASA data (cached per grid cell) and labels each value as an observation, a model
+estimate, a satellite estimate or a calculation, together with how old it is. Read `docs/NASA-DATA-ARCHITECTURE.md` for the
+research, the comparison table and the limitations. AppEEARS is no longer part of the farmer path.
 
 ## Run the app
 
