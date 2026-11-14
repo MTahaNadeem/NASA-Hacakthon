@@ -17,4 +17,8 @@ services:
         value: https://mtahanadeem.github.io
       - key: CACHE_DB                 # free instances have no persistent disk; the cache refills after a restart
         value: /tmp/cache.sqlite3
-      # EARTHDATA_TOKEN is optional (SMAP/IMERG). Add it in the Render dashboard under Environment, never in this file.
+      # PROTOTYPE ONLY (decided by the project owner, who accepts that it is public until Monday): the NASA Earthdata token is committed here
+      # so the cloud server can read recent SMAP/IMERG values without any dashboard step. Anyone can read it in this repository's history.
+      # For anything real: remove this line, revoke the token in your Earthdata profile, and set EARTHDATA_TOKEN in the Render dashboard.
+      - key: EARTHDATA_TOKEN
+        value: eyJ0eXAiOiJKV1QiLCJvcmlnaW4iOiJFYXJ0aGRhdGEgTG9naW4iLCJzaWciOiJlZGxqd3RwdWJrZXlfb3BzIiwiYWxnIjoiUlMyNTYifQ.eyJ0eXBlIjoiVXNlciIsInVpZCI6InRhaGFuYSIsInN1YiI6InRhaGFuYSIsImV4cCI6MTc5OTc4MDM2MywiaWF0IjoxNzk0NTk2MzYzLCJpc3MiOiJodHRwczovL3Vycy5lYXJ0aGRhdGEubmFzYS5nb3YiLCJpZGVudGl0eV9wcm92aWRlciI6ImVkbF9vcHMiLCJhY3IiOiJlZGwiLCJhc3N1cmFuY2VfbGV2ZWwiOjN9.9O6UG_Ynu06oIPzXuiNO3O2B_8lxIxGzIQG5gTL8Q11ht5jwPMqxRMxwSjIGHIza47FgKZNRm55B8cXc4yw8-6LbYXhw0MYeaLQog7hM8SrR-6U3QsYJRN6uGuqhJcjDA9NWxN6eMGA-G1PqxC5YuZHT6PEUId2AI8UN5HDd4ag4rmEz7FOGlwdqg7OzaBUW4a_j6lxqGzWOFflEnPWZ_vvCPawd8Guf6JuON-CSH7SOZ2AH08dNQxfsvNl24pL-5pUkFIWPwDbH1eyOoBDn1oYQynwGD8lPh8OjzoBxE1ne2JZnjOQIYuJsAMdFcKekykkd9M-5Tht7adsMqAjbbQ
