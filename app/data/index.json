@@ -30,5 +30,137 @@
    "corn_soy_oats"
   ],
   "synthetic": false
+ },
+ {
+  "id": "lahore",
+  "name": "Lahore, Pakistan",
+  "lat": 31.55,
+  "lon": 74.34,
+  "hero": true,
+  "current_rotation": "wheat_fallow",
+  "rotation_ids": [
+   "wheat_fallow",
+   "wheat_mungbean",
+   "wheat_chickpea",
+   "wheat_mustard",
+   "rice_wheat",
+   "cotton_wheat",
+   "sugarcane_only"
+  ],
+  "synthetic": false
+ },
+ {
+  "id": "islamabad",
+  "name": "Islamabad, Pakistan",
+  "lat": 33.68,
+  "lon": 73.05,
+  "hero": false,
+  "current_rotation": "wheat_fallow",
+  "rotation_ids": [
+   "wheat_fallow",
+   "wheat_mungbean",
+   "wheat_chickpea",
+   "wheat_mustard",
+   "rice_wheat",
+   "cotton_wheat",
+   "sugarcane_only"
+  ],
+  "synthetic": false
+ },
+ {
+  "id": "rawalpindi",
+  "name": "Rawalpindi, Pakistan",
+  "lat": 33.6,
+  "lon": 73.04,
+  "hero": false,
+  "current_rotation": "wheat_fallow",
+  "rotation_ids": [
+   "wheat_fallow",
+   "wheat_mungbean",
+   "wheat_chickpea",
+   "wheat_mustard",
+   "rice_wheat",
+   "cotton_wheat",
+   "sugarcane_only"
+  ],
+  "synthetic": false
+ },
+ {
+  "id": "ludhiana",
+  "name": "Ludhiana, India",
+  "lat": 30.9,
+  "lon": 75.86,
+  "hero": false,
+  "current_rotation": "wheat_fallow",
+  "rotation_ids": [
+   "wheat_fallow",
+   "wheat_mungbean",
+   "wheat_chickpea",
+   "wheat_mustard",
+   "rice_wheat",
+   "cotton_wheat",
+   "sugarcane_only"
+  ],
+  "synthetic": false
+ },
+ {
+  "id": "dhaka",
+  "name": "Dhaka, Bangladesh",
+  "lat": 23.81,
+  "lon": 90.41,
+  "hero": false,
+  "current_rotation": "corn_corn",
+  "rotation_ids": [
+   "corn_corn",
+   "corn_bean",
+   "corn_groundnut",
+   "corn_soy"
+  ],
+  "synthetic": false
+ },
+ {
+  "id": "nairobi",
+  "name": "Nairobi, Kenya",
+  "lat": -1.29,
+  "lon": 36.82,
+  "hero": false,
+  "current_rotation": "corn_corn",
+  "rotation_ids": [
+   "corn_corn",
+   "corn_bean",
+   "corn_groundnut",
+   "corn_soy"
+  ],
+  "synthetic": false
+ },
+ {
+  "id": "londrina",
+  "name": "Londrina, Brazil",
+  "lat": -23.31,
+  "lon": -51.16,
+  "hero": false,
+  "current_rotation": "corn_corn",
+  "rotation_ids": [
+   "corn_corn",
+   "corn_bean",
+   "corn_groundnut",
+   "corn_soy"
+  ],
+  "synthetic": false
+ },
+ {
+  "id": "toowoomba",
+  "name": "Toowoomba, Australia",
+  "lat": -27.56,
+  "lon": 151.95,
+  "hero": false,
+  "current_rotation": "wheat_fallow",
+  "rotation_ids": [
+   "wheat_fallow",
+   "wheat_mungbean",
+   "wheat_chickpea",
+   "wheat_mustard"
+  ],
+  "synthetic": false
  }
 ]
