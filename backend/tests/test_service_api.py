@@ -33,7 +33,7 @@ def test_health_and_sources(api):
     assert c.get("/api/health").json()["status"] == "ok"
     s = c.get("/api/sources").json()
     assert all(x["auth_for_farmer"] is False for x in s["sources"])
-    assert {x["id"] for x in s["sources"]} == {"power", "modis_ndvi", "smap", "imerg"}
+    assert {x["id"] for x in s["sources"]} == {"power", "modis_ndvi", "soilgrids", "smap", "imerg"}
     assert any("IMERG_PRECTOT" in n["name"] for n in s["not_used"])
 
 

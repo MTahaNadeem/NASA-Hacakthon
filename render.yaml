@@ -1,0 +1,20 @@
+# One-click backend deploy on Render (free plan). Untested: it needs your Render account, which I cannot create.
+# Render dashboard -> New + -> Blueprint -> pick this repository -> Apply.
+services:
+  - type: web
+    name: agrishift-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    # --proxy-headers: behind Render's proxy, use the visitor's real address for the rate limit instead of one shared address
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*'
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: ALLOWED_ORIGINS          # your GitHub Pages address (origin only, no path). Change it if your username differs.
+        value: https://mtahanadeem.github.io
+      - key: CACHE_DB                 # free instances have no persistent disk; the cache refills after a restart
+        value: /tmp/cache.sqlite3
+      # EARTHDATA_TOKEN is optional (SMAP/IMERG). Add it in the Render dashboard under Environment, never in this file.

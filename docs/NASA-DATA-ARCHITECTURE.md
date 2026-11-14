@@ -52,6 +52,12 @@ only as an optional offline tool for building a research cache.
 * Latency: the newest composite ended 2026-10-23, so about 3 weeks behind. Must be shown as such.
 * The ORNL MODIS web service failed TLS inside the build environment ("self-signed certificate in chain"). **Not usable by me, NOT VERIFIED**, and not needed.
 
+### ISRIC SoilGrids (soil, NOT NASA)  - VERIFIED, no key
+* The SoilGrids REST API took 38-60+ seconds per place in testing and timed out for one (Kansas farmland). The app waited for it in the background and often never received soil, so every crop was marked "no soil data". This was the main cause of "low confidence everywhere".
+* The same maps are published as tiled GeoTIFFs on `files.isric.org` (CORS open, no key). One pixel reads in 0.4 s. Tiles are found with a small per-property index (`backend/app/data/soilgrids_tiles_*.json`, built by `backend/tools/build_soil_tile_index.py`).
+* Found while testing: pH tiles are 600x600 but carbon/sand/silt/clay are 450x450, so each property needs its own index. Within a property all depths and percentiles share one layout (checked on 40 layers).
+* Reads reproduce the values read through the full VRT (Kansas pH raw 67, Lahore farmland 79). Built-up pixels are unmapped (Ames, Delhi, Lahore city); the backend uses the nearest pixel where all five properties are mapped, within 25 km, and reports the distance.
+
 ### Other services evaluated
 
 | Service | Verdict |
@@ -122,6 +128,22 @@ SMAP and IMERG files are large global granules. The plan, in order of effort:
 * SoilGrids is ISRIC, not NASA; labelled as such.
 * The backend must be hosted somewhere other than GitHub Pages (free tiers exist, with cold starts).
 * The requested stack says React + Vite; the existing frontend is vanilla JS with a full 10-language, tested UI. Rewriting it is out of scope and would risk the working app, so the backend is added alongside it behind a config switch.
+
+## 4b. Why every crop showed "low confidence", and what was measured
+
+`confidence()` gives a point for: a clear winner, a narrow score range, soil present, and 3+ data sources, and needs 3 for "medium" and 4 for "high". For a searched place the app had only weather, so soil (often missing, see above) and the bare-field factor (needs MODIS) were absent and the source count could never reach 3.
+
+Measured with the real engine on real data (weather, soil and MODIS from the backend), six places:
+
+| Place | Weather only | + soil + MODIS |
+|---|---|---|
+| Lahore | 4 low | 1 high, 2 medium, 1 low |
+| Nairobi, Sao Paulo, Kansas | all low | all medium |
+| Ames, Delhi | all low | still low (rotations genuinely overlap, wide year-to-year range) |
+
+The thresholds were **not** changed. More real evidence moved the labels, and where rotations really cannot be told apart they stay low. Cloudy places have thin MODIS coverage (Nairobi: 50 of 120 composites usable); months with fewer than 2 usable composites are left blank.
+
+Also fixed: the wheat rotation set was unreachable for searched places because it required 2+ frost days a year, which a weather grid cell averages away (Lahore 0.2). It now also triggers on a hot summer plus cool winter in the 20-40 degree latitude band.
 
 ## 5. How a brand-new farmer gets NASA data without credentials
 

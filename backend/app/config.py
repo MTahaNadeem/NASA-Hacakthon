@@ -22,6 +22,7 @@ TTL_POWER = _int("TTL_POWER", 6 * 3600)
 TTL_MODIS_SEARCH = _int("TTL_MODIS_SEARCH", 12 * 3600)
 TTL_MODIS_PIXEL = _int("TTL_MODIS_PIXEL", 30 * 86400)   # a finished composite does not change
 TTL_CMR = _int("TTL_CMR", 3 * 3600)
+TTL_SOIL = _int("TTL_SOIL", 90 * 86400)       # soil maps do not change
 
 HTTP_TIMEOUT = _int("HTTP_TIMEOUT", 45)
 RATE_LIMIT_PER_MIN = _int("RATE_LIMIT_PER_MIN", 60)
@@ -34,4 +35,5 @@ UPSTREAM_HOSTS = {
     "planetarycomputer.microsoft.com",
     "modiseuwest.blob.core.windows.net",
     "cmr.earthdata.nasa.gov",
+    "files.isric.org",
 }

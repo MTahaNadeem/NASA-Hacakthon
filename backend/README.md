@@ -29,7 +29,8 @@ A **NASA data** tab then appears. With `backendUrl` empty the tab stays hidden a
 | `GET /api/health` | status, whether a server Earthdata token is configured (a yes/no only) | instant |
 | `GET /api/sources` | every source, its auth needs, status, and what was deliberately **not** used | instant |
 | `GET /api/location?lat=&lon=` | weather record, rain, modelled soil wetness, indicators, newest SMAP/IMERG acquisition dates | ~1-3 s first time for a grid cell, ~0.1 s after |
-| `GET /api/ndvi?lat=&lon=&months=12` | MODIS greenness series for the 250 m pixel | ~7-11 s first time for a pixel, ~0.01 s after |
+| `GET /api/ndvi?lat=&lon=&months=12` | MODIS greenness series for the 250 m pixel, plus a 12-month climatology (`monthly_mean`, months with fewer than 2 composites left blank) | ~7 s for 12 months, ~15-22 s for 36 months the first time; ~0.01 s after |
+| `GET /api/soil?lat=&lon=` | SoilGrids pH, organic carbon, clay, sand, silt (5th/50th/95th percentile) for the nearest mapped land, with the distance. **Not NASA** | ~4-6 s first time for a pixel, instant after |
 
 Every block has a `provenance` object: `source`, `dataset`, `kind` (`reanalysis` / `satellite_estimate` /
 `calculated` / `observation`), `spatial_resolution`, `data_through`, `data_age_days`, `fetched_at`,
@@ -41,6 +42,7 @@ Every block has a `provenance` object: `source`, `dataset`, `kind` (`reanalysis`
 |---|---|
 | NASA POWER (temperature, rain, humidity, solar, modelled soil wetness) | **Working, verified live**, no key |
 | MODIS NDVI 250 m through the anonymous Planetary Computer STAC | **Working, verified live**, no account |
+| ISRIC SoilGrids soil (not NASA) | **Working, verified live.** Read from ISRIC's tiled maps (the REST API took 38-60+ s and sometimes timed out) |
 | SMAP soil moisture | **Discovery only.** Newest acquisition date is real; values are not served |
 | GPM IMERG rain | **Discovery only.** Same |
 
@@ -66,19 +68,30 @@ Until that prints `PASS` for both products, the API keeps saying `discovery_only
 
 For a real deployment set `ALLOWED_ORIGINS` to your site instead of `*`.
 
-## Hosting
+## Deploy it (free, about 5 minutes, needs your own account)
 
-GitHub Pages can host only the static site, so this backend needs a separate host. Any service that runs a Python web
-app or a container works (Render, Fly.io, Railway, a small VPS). `Dockerfile` is included but **was not built in the
-environment where this was written**. Free tiers sleep when idle, so the first request after a pause can take longer.
-SQLite on a host with no persistent disk is emptied on restart; the cache then simply refills (POWER asks clients to
-make one request per grid cell, which the cache enforces while it lives). For heavier use switch the `Cache` class to
-Postgres or Redis, as the interface is two methods.
+GitHub Pages can only host the static site, so this backend runs on a separate free host. The repository root has a
+`render.yaml` blueprint (**not tested: it needs a Render account, which cannot be created for you**).
+
+1. Sign up at https://render.com with your GitHub account (no card needed for the free plan).
+2. **New +  ->  Blueprint**, choose this repository, click **Apply**. Wait for the build (a few minutes).
+3. Open `https://<your-service>.onrender.com/api/health`. You should see `{"status":"ok", ...}`.
+4. Put that address in `app/config.js` (`backendUrl`), commit and push. GitHub Pages redeploys on its own.
+5. If your GitHub Pages address is not `https://mtahanadeem.github.io`, change `ALLOWED_ORIGINS` in the Render dashboard.
+
+Things to know about the free plan: the service **sleeps when idle** (the site pings it as soon as the page opens to wake it,
+but the first visitor after a quiet period can wait about a minute); it has **no persistent disk**, so the cache is emptied on
+restart and refills as people use it (it is what keeps us within POWER's one-request-per-grid-cell guidance, so heavy traffic
+after a restart means more upstream requests). For serious use, switch the `Cache` class to Postgres or Redis; it has two methods.
+A `Dockerfile` is also included for other hosts but **was not built** where this was written.
+
+If the backend is down or asleep the site keeps working: soil falls back to the slow SoilGrids API, the NASA tab shows a clear
+error, and nothing is invented.
 
 ## Tests
 
 ```bash
-cd backend && python -m pytest tests -q          # 40 tests, no network needed
+cd backend && python -m pytest tests -q          # 55 tests, no network needed
 node tests/nasa.test.js                          # panel rendering, from the repo root
 ```
 

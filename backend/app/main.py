@@ -10,6 +10,7 @@ from .cache import Cache
 from .providers.cmr import CmrError
 from .providers.modis import ModisError
 from .providers.power import PowerError
+from .providers.soilgrids import SoilError
 from .ratelimit import RateLimiter
 
 app = FastAPI(title="AgriShift AI NASA data API", version="0.1.0",
@@ -40,7 +41,9 @@ LON = Query(..., ge=-180, le=180, description="Longitude, degrees")
 def _upstream(fn):
     try:
         return fn()
-    except (PowerError, ModisError, CmrError) as e:
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    except (PowerError, ModisError, CmrError, SoilError) as e:
         # a real failure is reported as a failure; no substitute numbers are ever invented
         raise HTTPException(502, "NASA data source unavailable: %s" % e)
 
@@ -65,3 +68,9 @@ def location(lat: float = LAT, lon: float = LON, cache: Cache = Depends(get_cach
 def ndvi(lat: float = LAT, lon: float = LON, months: int = Query(12, ge=1, le=36), cache: Cache = Depends(get_cache)):
     """MODIS vegetation greenness for the pixel. Slower (a few seconds on a miss), so it is a separate call."""
     return _upstream(lambda: service.ndvi(lat, lon, cache, months=months))
+
+
+@app.get("/api/soil", dependencies=[Depends(limited)])
+def soil(lat: float = LAT, lon: float = LON, cache: Cache = Depends(get_cache)):
+    """Soil pH, organic carbon, clay, sand, silt (with 5th-95th percentile range) for the nearest mapped land. About 4-6 s the first time."""
+    return _upstream(lambda: service.soil(lat, lon, cache))

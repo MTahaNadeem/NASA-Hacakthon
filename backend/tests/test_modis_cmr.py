@@ -58,4 +58,4 @@ def test_cmr_empty_result_is_none():
 
 def test_only_expected_hosts_are_whitelisted():
     assert config.UPSTREAM_HOSTS == {"power.larc.nasa.gov", "planetarycomputer.microsoft.com",
-                                     "modiseuwest.blob.core.windows.net", "cmr.earthdata.nasa.gov"}
+                                     "modiseuwest.blob.core.windows.net", "cmr.earthdata.nasa.gov", "files.isric.org"}

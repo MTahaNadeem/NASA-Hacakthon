@@ -2,7 +2,7 @@
 import datetime as dt
 
 from . import config, grid, indicators, provenance as pv
-from .providers import cmr, modis, power
+from .providers import cmr, modis, power, soilgrids
 
 POWER_RES = "0.5 deg lat x 0.625 deg lon (meteorology); 1 x 1 deg (solar radiation)"
 
@@ -125,6 +125,7 @@ def ndvi(lat, lon, cache, months=12, searcher=None, reader=None):
     else:
         rows = reader(lat, lon, items)
     good = [r for r in rows if r["ndvi"] is not None]
+    clim, clim_n = monthly_ndvi(rows)
     through = max((r["end"] for r in good), default=None)
     return {
         "location": {"requested": {"lat": lat, "lon": lon}, "pixel_key": cell},
@@ -138,9 +139,53 @@ def ndvi(lat, lon, cache, months=12, searcher=None, reader=None):
             "series": rows,
             "latest": (sorted(good, key=lambda r: r["end"])[-1] if good else None),
             "valid_count": len(good), "total_count": len(rows),
+            "monthly_mean": clim, "monthly_count": clim_n,
+            "monthly_note": "Average NDVI per calendar month over the last %d months only (%.1f years). Not a long-term climatology." % (months, months / 12),
         },
         "gaps": (["%d of %d composites had no usable value (cloud, water or low quality) and are left blank." % (len(rows) - len(good), len(rows))]
                  if len(good) != len(rows) else []),
+    }
+
+
+MIN_COMPOSITES_PER_MONTH = 2
+
+
+def monthly_ndvi(rows):
+    """12-value NDVI climatology (index 0 = January) from valid composites, using each composite's mid-date month.
+    A month backed by fewer than MIN_COMPOSITES_PER_MONTH valid composites stays None: one cloud-edge pass should not define a month. This is what the app's bare-field factor reads (data.ndvi_clim)."""
+    buckets = {m: [] for m in range(1, 13)}
+    for r in rows:
+        if r.get("ndvi") is None or not r.get("start"):
+            continue
+        mid = dt.date.fromisoformat(r["start"]) + dt.timedelta(days=8)
+        buckets[mid.month].append(r["ndvi"])
+    return ([round(sum(v) / len(v), 4) if len(v) >= MIN_COMPOSITES_PER_MONTH else None for v in (buckets[m] for m in range(1, 13))],
+            [len(buckets[m]) for m in range(1, 13)])
+
+
+def soil(lat, lon, cache, fetcher=None):
+    lat, lon = grid.check_lat_lon(lat, lon)
+    px = soilgrids.pixel(lat, lon)
+    if px is None:
+        raise ValueError("point is outside the SoilGrids map")
+    rec, fetched, stale, hit = cache.fetch("soil:v1:%d:%d" % px, config.TTL_SOIL, lambda: (fetcher or soilgrids.fetch)(lat, lon))
+    gaps = []
+    if rec.get("reason"):
+        gaps.append(rec["reason"])
+    elif rec.get("distance_km"):
+        gaps.append("No soil is mapped at the exact point (towns, water and ice are masked). Using the nearest mapped land %d km away." % rec["distance_km"])
+    missing = [k for k in soilgrids.PROPS if k not in rec.get("soil", {})]
+    if rec.get("soil") and missing:
+        gaps.append("No value for: %s." % ", ".join(missing))
+    return {
+        "location": {"requested": {"lat": lat, "lon": lon}, "pixel": rec.get("pixel")},
+        "soil": rec.get("soil", {}), "distance_km": rec.get("distance_km"),
+        "provenance": pv.make("ISRIC SoilGrids 2.0 (not NASA)", "SoilGrids mean, 5th and 95th percentile maps, 0-30 cm depth-weighted", "third_party",
+                              units="pH; organic carbon g/kg; clay, sand, silt %", spatial_resolution="250 m",
+                              temporal_resolution="static map", period="0-5, 5-15 and 15-30 cm layers weighted by thickness",
+                              fetched_at=fetched, from_cache=hit, stale=stale,
+                              note="A machine-learning prediction of soil properties, not a measurement of this field. The 5th-95th range shows its uncertainty."),
+        "gaps": gaps,
     }
 
 
@@ -150,6 +195,8 @@ def sources(cache=None):
          "instant": True, "status": "enabled", "endpoint": "/api/location"},
         {"id": "modis_ndvi", "name": "NASA MODIS NDVI 250 m (via Planetary Computer STAC)", "kind": "satellite_estimate",
          "auth_for_farmer": False, "server_auth": "none", "instant": True, "status": "enabled", "endpoint": "/api/ndvi"},
+        {"id": "soilgrids", "name": "ISRIC SoilGrids 250 m (not NASA)", "kind": "third_party", "auth_for_farmer": False, "server_auth": "none",
+         "instant": True, "status": "enabled", "endpoint": "/api/soil"},
         {"id": "smap", "name": "NASA SMAP L3 soil moisture 9 km", "kind": "observation", "auth_for_farmer": False,
          "server_auth": "Earthdata Login (documented)", "instant": False,
          "status": "discovery_only", "server_token_configured": bool(config.EARTHDATA_TOKEN), "endpoint": "/api/location (soil_moisture.smap)"},

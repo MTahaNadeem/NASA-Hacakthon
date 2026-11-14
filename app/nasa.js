@@ -16,7 +16,10 @@
   }
   function q(lat, lon) { return "?lat=" + encodeURIComponent(lat.toFixed(4)) + "&lon=" + encodeURIComponent(lon.toFixed(4)); }
   function fetchLocation(lat, lon) { return get("/api/location" + q(lat, lon)); }
-  function fetchNdvi(lat, lon) { return get("/api/ndvi" + q(lat, lon) + "&months=12", 90000); }
+  function fetchNdvi(lat, lon) { return get("/api/ndvi" + q(lat, lon) + "&months=36", 150000); }
+  // Free hosts sleep when idle; touching /api/health as soon as the page opens starts the wake-up while the visitor is still choosing a place.
+  function wake() { if (enabled()) get('/api/health', 70000).catch(function () {}); }
+  function fetchSoil(lat, lon) { return get("/api/soil" + q(lat, lon), 90000); }
 
   function num(x, d) { return x == null || isNaN(x) ? null : (+x).toFixed(d == null ? 0 : d); }
   function signed(x, d) { var s = num(x, d); return s == null ? null : (x > 0 ? "+" : "") + s; }
@@ -96,6 +99,6 @@
     return out.join("");
   }
 
-  var api = { enabled: enabled, fetchLocation: fetchLocation, fetchNdvi: fetchNdvi, model: model, html: html, spark: spark };
+  var api = { wake: wake, enabled: enabled, fetchLocation: fetchLocation, fetchNdvi: fetchNdvi, fetchSoil: fetchSoil, model: model, html: html, spark: spark };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.NasaPanel = api;
 })(typeof window !== "undefined" ? window : globalThis);

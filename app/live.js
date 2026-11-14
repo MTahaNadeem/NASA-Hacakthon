@@ -79,8 +79,8 @@
   // Resolves as soon as the weather (NASA POWER) is in, with a data object shaped like app/data/<id>.json. Soil from SoilGrids is slow
   // (a city point can hang for minutes), so it is fetched in the background: d.soilPromise resolves with the SAME object once soil has been
   // added (or its absence recorded under d.gaps), and d.soilDone becomes true. POWER failure is fatal; soil failure never is.
-  function fetchLocation(lat, lon, onStatus) {
-    onStatus = onStatus || function () {};
+  function fetchLocation(lat, lon, onStatus, opts) {
+    onStatus = onStatus || function () {}; opts = opts || {};
     lat = Math.round(lat * 100) / 100; lon = Math.round(lon * 100) / 100;
     onStatus("st.fetchPower");
     return fetchPower(lat, lon).then(function (climate) {
@@ -101,9 +101,29 @@
         d.soilDone = true; return d;
       };
       onStatus("st.fetchSoil");
-      d.soilPromise = fetchSoil(lat, lon).then(function (r) { return finish(r, null); }, function (e) { return finish(null, e.message); });
+      // opts.soilSource (the NASA-data backend, ~5 s) is tried first; the slow SoilGrids REST call is the fallback.
+      var primary = opts.soilSource ? opts.soilSource(lat, lon).then(function (r) { if (r && r.soil && r.soil.ph) return r; throw new Error("backend returned no soil"); }).catch(function () { return fetchSoil(lat, lon); }) : fetchSoil(lat, lon);
+      d.soilPromise = primary.then(function (r) { return finish(r, null); }, function (e) { return finish(null, e.message); });
       return d;
     });
+  }
+
+  // Add soil from the backend (/api/soil response) to a data object. Never overwrites soil that is already there.
+  function applySoil(d, j) {
+    if (!d || !j || !j.soil || !j.soil.ph || (d.soil && d.soil.ph)) return false;
+    d.soil = j.soil; d.soil_units = UNITS; d.sources = d.sources || {}; d.sources.soilgrids = "SoilGrids (ISRIC), read by the backend";
+    d.gaps = (d.gaps || []).filter(function (g) { return !/^SoilGrids unavailable/.test(g); });
+    if (j.distance_km) d.gaps.push("Soil values come from mapped land about " + j.distance_km + " km from the pin, because the pin is on built-up land or water where SoilGrids has no data.");
+    d.soilDone = true; return true;
+  }
+  // Add MODIS NDVI (/api/ndvi response) as the 12-month climatology the bare-field factor reads. Needs at least 6 months with data.
+  function applyNdvi(d, j) {
+    var m = j && j.ndvi && j.ndvi.monthly_mean; if (!d || !m || m.length !== 12 || d.ndvi_clim) return false;
+    if (m.filter(function (v) { return v != null; }).length < 6) return false;
+    d.ndvi_clim = m; d.sources = d.sources || {}; d.sources.modis = "NASA MODIS MOD13Q1/MYD13Q1, last 36 months";
+    d.gaps = (d.gaps || []).filter(function (g) { return !/^Live location: MODIS NDVI is not used/.test(g); });
+    d.gaps.push("MODIS NDVI for the bare-field factor covers only about the last three years at this 250 m pixel, not a long-term average, and one pixel can mix fields with roads or houses.");
+    return true;
   }
 
   // Rough starting suggestion only; the user can switch the rotation set.
@@ -112,9 +132,15 @@
     var frost = yr(d.climate.frost_days), heat = yr(d.climate.heat_days);
     if (frost > 30) return "temperate_corn";
     if (frost >= 2 && heat >= 30) return "south_asia_wheat";
+    // Subtropical winter-wheat belt (Punjab, Indo-Gangetic plain, Nile valley): very hot summers (60+ days at 35 C or more) and a cool
+    // winter with no such days. A weather-grid cell averages frost away (Lahore shows ~0.2 days a year), so frost alone misses it.
+    if (d.lat >= 20 && d.lat <= 40 && heat >= 60) {
+      var winter = d.climate.heat_days.reduce(function (a, r) { return a + r[11] + r[0] + r[1]; }, 0) / d.climate.heat_days.length;
+      if (winter < 1) return "south_asia_wheat";
+    }
     return "tropical_maize";
   }
 
-  var api = { fetchLocation: fetchLocation, parsePower: parsePower, parseSoil: parseSoil, suggestPreset: suggestPreset };
+  var api = { fetchLocation: fetchLocation, parsePower: parsePower, parseSoil: parseSoil, suggestPreset: suggestPreset, applySoil: applySoil, applyNdvi: applyNdvi };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.LiveData = api;
 })(typeof window !== "undefined" ? window : globalThis);

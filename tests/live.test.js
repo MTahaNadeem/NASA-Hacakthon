@@ -18,6 +18,17 @@ const mk = (frost, heat) => ({ climate: { frost_days: [[frost, ...Array(11).fill
 assert.strictEqual(L.suggestPreset(mk(60, 0)), "temperate_corn");
 assert.strictEqual(L.suggestPreset(mk(5, 50)), "south_asia_wheat");
 assert.strictEqual(L.suggestPreset(mk(0, 5)), "tropical_maize");
+// subtropical wheat belt: real POWER data for Faisalabad (Punjab) is hot in summer, has no hot winter days, and little frost
+const fs = require("fs"), path = require("path"), fais = JSON.parse(fs.readFileSync(path.join(__dirname, "../app/data/faisalabad.json"), "utf8"));
+const ames = JSON.parse(fs.readFileSync(path.join(__dirname, "../app/data/ames_iowa.json"), "utf8"));
+assert.strictEqual(L.suggestPreset(fais), "south_asia_wheat");
+assert.strictEqual(L.suggestPreset(ames), "temperate_corn");
+const hot = (lat) => ({ lat, climate: { frost_days: [Array(12).fill(0)], heat_days: [[0, 0, 0, 10, 20, 20, 15, 10, 5, 0, 0, 0]] } });
+assert.strictEqual(L.suggestPreset(hot(30)), "south_asia_wheat");          // hot summer, cool winter, subtropical latitude
+assert.strictEqual(L.suggestPreset(hot(-22)), "tropical_maize");           // same climate in the southern hemisphere is not the wheat belt
+assert.strictEqual(L.suggestPreset(hot(12)), "tropical_maize");            // too close to the equator
+const hotWinter = hot(30); hotWinter.climate.heat_days[0][0] = 5; assert.strictEqual(L.suggestPreset(hotWinter), "tropical_maize");   // hot all year
+assert.strictEqual(L.suggestPreset({ climate: { frost_days: [Array(12).fill(0)], heat_days: [[0, 0, 0, 10, 20, 20, 15, 10, 5, 0, 0, 0]] } }), "tropical_maize");   // no latitude: old behaviour
 console.log("live tests passed");
 
 // ---- progressive loading: weather must not wait for slow soil ----

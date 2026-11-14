@@ -189,8 +189,14 @@
     }).catch(function () { if (token !== n.token) return; n.status = "err"; renderNasa(); });
     // the satellite series is slower (several seconds on first use), so it is a separate call and fills in when ready
     NasaPanel.fetchNdvi(d.lat, d.lon).then(function (j) {
-      if (token !== n.token) return; n.ndvi = j; n.ndviStatus = "ok"; renderNasa();
+      if (token !== n.token) return; n.ndvi = j; n.ndviStatus = "ok";
+      // MODIS now feeds the bare-field factor for this place, so the ranking is recomputed with it
+      if (state.data === d && LiveData.applyNdvi(d, j)) { renderProfile(); renderAll(); }
+      renderNasa();
     }).catch(function () { if (token !== n.token) return; n.ndviStatus = "err"; renderNasa(); });
+    if (!d.soil) NasaPanel.fetchSoil(d.lat, d.lon).then(function (j) {     // places loaded from the bundled files have no soil
+      if (token === n.token && state.data === d && LiveData.applySoil(d, j)) { renderProfile(); renderAll(); }
+    }).catch(function () {});
   }
   function renderNasa() {
     var el = $("nasa"), n = state.nasa; if (!el) return;
@@ -212,7 +218,7 @@
 
   /* ---------- init ---------- */
   function init() {
-    buildArt(); buildLangSelect();
+    buildArt(); buildLangSelect(); NasaPanel.wake();
     var code = I18N.detect();
     Promise.all([getJSON("rotations.json"), getJSON("data/index.json"), I18N.set(code), getJSON("places.json")]).then(function (r) {
       state.cfgRaw = r[0]; state.cfg = r[0]; state.cfgBase = r[0]; state.index = r[1]; state.places = r[3];
@@ -326,7 +332,8 @@
     $("lat").value = lat.toFixed(2); $("lon").value = lon.toFixed(2);
     state.loading = true; setStatus("st.fetchPower");
     if (!state.data) $("cards").innerHTML = "<p class='mini'>" + esc(t("st.fetchPower")) + "</p>";
-    LiveData.fetchLocation(lat, lon, function (key) { if (token === state.loadToken) setStatus(key); }).then(function (d) {
+    var lopts = NasaPanel.enabled() ? { soilSource: function (la, lo) { return NasaPanel.fetchSoil(la, lo).then(function (j) { return { soil: j.soil, km: j.distance_km || 0 }; }); } } : {};
+    LiveData.fetchLocation(lat, lon, function (key) { if (token === state.loadToken) setStatus(key); }, lopts).then(function (d) {
       if (token !== state.loadToken) return;
       state.loading = false; state.data = d; buildCfg(d.lat, d.lon);
       var key = opts.preset || LiveData.suggestPreset(d); $("preset").value = key; $("presetrow").hidden = false;

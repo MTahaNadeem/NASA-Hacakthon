@@ -13,7 +13,7 @@ Hero case: wheat-wheat in Punjab (Faisalabad) vs. legume and oilseed rotations. 
 | Scoring engine (`app/scoring.js`) | Built, unit-tested (`node tests/scoring.test.js`) |
 | Web app (`app/`) | Built, 10 languages, checked in a headless browser |
 | Any-place lookup in the browser | **Works:** NASA POWER (no key) and SoilGrids (ISRIC, not NASA), fetched live |
-| **NASA data backend (`backend/`)** | **New.** POWER and MODIS NDVI verified live with no login. SMAP and IMERG: newest-acquisition discovery only, values not served yet. See `backend/README.md` |
+| **NASA data backend (`backend/`)** | **New.** POWER, MODIS NDVI and SoilGrids soil verified live with no login. **Not deployed yet:** it must be hosted separately (see `backend/README.md`), otherwise the site runs without it. SMAP and IMERG: newest-acquisition discovery only, values not served yet. See `backend/README.md` |
 | `pipeline/` (offline cache builder) | POWER and SoilGrids ran; AppEEARS (MODIS/SMAP) needs an Earthdata login on your own machine; IMERG is optional and slow |
 | Data in `app/data/` | **Real NASA POWER** for Faisalabad and Ames. Soil, MODIS, SMAP and IMERG are not in those files, and the app says so in its data-gap notes |
 
