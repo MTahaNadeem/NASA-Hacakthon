@@ -172,7 +172,7 @@
     return I18N.set(code).then(function () {
       I18N.remember(I18N.lang()); applyStatic(); buildPresetOptions(); buildLocationList(); buildCmpOptions(); renderStatus(); renderMapTips(); renderHow(); renderRules(); renderMine();
       if (state.data) { renderBanner(); renderProfile(); renderAll(); }
-      renderNasa();
+      renderNasa(); if (state.cropmap) state.cropmap.refresh();
       writeUrl();
     });
   }
@@ -349,11 +349,26 @@
   function buildMap() {
     if (!window.L) { $("map").textContent = t("loc.map.fail"); $("map").style.padding = "16px"; $("maphint").hidden = true; return; }
     state.map = L.map("map", { worldCopyJump: true }).setView([25, 50], 2);
-    L.tileLayer(TILES, { maxZoom: 18, attribution: TILE_ATTR }).addTo(state.map);
+    var baseOsm = L.tileLayer(TILES, { maxZoom: 18, attribution: TILE_ATTR }).addTo(state.map);
     state.places.forEach(function (p) { state.markers[p.id] = L.marker([p.lat, p.lon], { icon: pinIcon(), keyboard: false }).addTo(state.map).on("click", function () { selectPlace(p); }); });
     state.map.on("click", function (e) { loadCustom(e.latlng.lat, e.latlng.lng, { fromMap: true }); });
     state.map.on("zoomend", syncMarkers);
+    // Agricultural GIS layers are ADDED to this map (layer switcher, crop legend, filters, field popups). Nothing above is replaced.
+    if (window.CropMap) state.cropmap = CropMap.attach(state.map, baseOsm, {
+      backend: function () { return NasaPanel.backend(); }, season: seasonFor,
+      ndvi: function (lat, lon) { return NasaPanel.fetchNdvi(lat, lon, 3); },
+      analyse: function (lat, lon) { loadCustom(lat, lon, { fromMap: true }); }
+    });
     renderMapTips();
+  }
+  // Growing season for a mapped crop, ONLY where the project holds a sourced calendar for that crop in that region; otherwise null (shown as "not available").
+  var MAP_CROP_TO_PROJECT = { "Corn": "corn", "Soybeans": "soy", "Oats": "oats", "Winter Wheat": "wheat", "Spring Wheat": "wheat", "Durum Wheat": "wheat", "Rice": "rice", "Cotton": "cotton", "Sugarcane": "sugarcane",
+    "Peanuts": "groundnut", "Dry Beans": "bean", "Chick Peas": "chickpea", "Mustard": "mustard" };
+  function seasonFor(crop, lat, lon) {
+    var id = MAP_CROP_TO_PROJECT[crop], cfg = state.cfgRaw; if (!id || !cfg || !cfg.crops[id]) return null;
+    var cal = (cfg.crops[id].calendars || {})[regionFor(lat, lon)]; if (!cal) return null;
+    var ML = monthNames("long"), src = (cal.ids || []).map(function (i) { var x = cfg.sources && cfg.sources[i]; return x && (x.title || x.name); }).filter(Boolean).join("; ");
+    return t("crop.p.seasonfmt", { sow: ML[cal.sow - 1], harvest: ML[cal.harvest - 1], src: src || "-" }) + (cal.note ? " " + cal.note : "");
   }
   function renderMapTips() {
     if (!state.map) return;

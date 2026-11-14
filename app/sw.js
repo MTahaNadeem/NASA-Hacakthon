@@ -3,7 +3,7 @@
  * Live data APIs and map tiles are never cached here. Cross-origin requests are cached ONLY for the static map library and fonts: an earlier
  * "cache every cross-origin GET" rule also saved the backend's /api/recent, /api/location, /api/soil and /api/ndvi answers and the MODIS read
  * token, so polling a running job kept returning its first "running" reply and data could be stale. Everything else goes straight to the network. */
-const VERSION = "rx-v4", SHELL = ["./", "index.html", "style.css", "app.js", "scoring.js", "live.js", "config.js", "igh.js", "direct.js", "nasa.js", "i18n.js", "i18n/en.js", "places.json", "rotations.json", "data/index.json", "manifest.webmanifest", "icon.svg"];
+const VERSION = "rx-v5", SHELL = ["./", "index.html", "style.css", "app.js", "scoring.js", "live.js", "config.js", "igh.js", "direct.js", "nasa.js", "cropmap.js", "i18n.js", "i18n/en.js", "places.json", "rotations.json", "data/index.json", "manifest.webmanifest", "icon.svg"];
 const CDN = ["https://unpkg.com/leaflet@1.9.4/dist/leaflet.js", "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"];
 const LIVE = /power\.larc\.nasa\.gov|rest\.isric\.org|geocoding-api\.open-meteo\.com|tile\.openstreetmap\.org/;
 const STATIC_CDN = /^(unpkg\.com|fonts\.googleapis\.com|fonts\.gstatic\.com)$/;

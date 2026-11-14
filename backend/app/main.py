@@ -9,6 +9,7 @@ from . import config, service
 from .cache import Cache
 from .providers.cmr import CmrError
 from .providers.harmony import HarmonyError
+from .providers.landcover import LandcoverError
 from .providers.modis import ModisError
 from .providers.power import PowerError
 from .providers.soilgrids import SoilError
@@ -44,7 +45,7 @@ def _upstream(fn):
         return fn()
     except ValueError as e:
         raise HTTPException(422, str(e))
-    except (PowerError, ModisError, CmrError, SoilError, HarmonyError) as e:
+    except (PowerError, ModisError, CmrError, SoilError, HarmonyError, LandcoverError) as e:
         # a real failure is reported as a failure; no substitute numbers are ever invented
         raise HTTPException(502, "NASA data source unavailable: %s" % e)
 
@@ -89,3 +90,11 @@ def soil(lat: float = LAT, lon: float = LON, cache: Cache = Depends(get_cache)):
 def recent(lat: float = LAT, lon: float = LON, cache: Cache = Depends(get_cache)):
     """Recent SMAP soil moisture and IMERG rain (last 30 days). Slow the first time, so it returns {'status': 'running'}: ask again every few seconds."""
     return _upstream(lambda: service.recent(lat, lon, cache))
+
+
+@app.get("/api/crops", dependencies=[Depends(limited)])
+def crops(west: float = Query(..., ge=-180, le=180), south: float = Query(..., ge=-90, le=90), east: float = Query(..., ge=-180, le=180),
+          north: float = Query(..., ge=-90, le=90), source: str = Query("auto"), cache: Cache = Depends(get_cache)):
+    """Crop-area polygons (GeoJSON) for a small box. USDA CDL has crop types (USA only); elsewhere ESA WorldCover gives cropland extent only.
+    Every response says which it is. Polygons are satellite-classification areas, not surveyed field boundaries."""
+    return _upstream(lambda: service.crops(west, south, east, north, cache, source=source))

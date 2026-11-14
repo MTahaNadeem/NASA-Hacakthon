@@ -62,7 +62,7 @@
     if (mode() !== "backend") return root.DirectData.status();
     return get("/api/location" + q(lat, lon), 90000).catch(function (e) { if (!(root.DirectData && root.DirectData.available())) throw e; return root.DirectData.status(); });
   }
-  function fetchNdvi(lat, lon) { return race(function (d) { return d.ndvi(lat, lon, 36); }, "/api/ndvi" + q(lat, lon) + "&months=36", 150000, DELAY_NDVI_MS); }
+  function fetchNdvi(lat, lon, months) { months = months || 36; return race(function (d) { return d.ndvi(lat, lon, months); }, "/api/ndvi" + q(lat, lon) + "&months=" + months, 150000, months < 12 ? 8000 : DELAY_NDVI_MS); }
   function fetchSoil(lat, lon) { return race(function (d) { return d.soil(lat, lon); }, "/api/soil" + q(lat, lon), 120000, DELAY_SOIL_MS); }
   // Free hosts sleep when idle; touching /api/health as soon as the page opens starts the wake-up while the visitor is still choosing a place.
   function wake() { if (mode() === "backend") get('/api/health', 70000).catch(function () {}); }
@@ -162,6 +162,6 @@
     return out.join("");
   }
 
-  var api = { _poll: function (ms) { POLL_MS = ms; }, fetchRecent: fetchRecent, _reset: function () { directBroken = false; }, _delay: function (ms) { DELAY_SOIL_MS = ms; DELAY_NDVI_MS = ms; }, wake: wake, mode: mode, enabled: enabled, fetchLocation: fetchLocation, fetchNdvi: fetchNdvi, fetchSoil: fetchSoil, model: model, html: html, spark: spark };
+  var api = { backend: backendUrl, _poll: function (ms) { POLL_MS = ms; }, fetchRecent: fetchRecent, _reset: function () { directBroken = false; }, _delay: function (ms) { DELAY_SOIL_MS = ms; DELAY_NDVI_MS = ms; }, wake: wake, mode: mode, enabled: enabled, fetchLocation: fetchLocation, fetchNdvi: fetchNdvi, fetchSoil: fetchSoil, model: model, html: html, spark: spark };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.NasaPanel = api;
 })(typeof window !== "undefined" ? window : globalThis);

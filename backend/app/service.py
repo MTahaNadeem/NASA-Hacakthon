@@ -8,7 +8,7 @@ import math
 import threading
 import time
 
-from .providers import cmr, harmony, modis, power, soilgrids
+from .providers import cmr, harmony, landcover, modis, power, soilgrids
 
 POWER_RES = "0.5 deg lat x 0.625 deg lon (meteorology); 1 x 1 deg (solar radiation)"
 
@@ -348,6 +348,28 @@ def recent(lat, lon, cache, fetcher=None, today=None, background=True):
     return dict(hit[0], status="ready", served_from_cache=False) if hit else {"status": "error", "reason": _recent_jobs.get(key, {}).get("error", "failed")}
 
 
+CROPS_MAX_SPAN_DEG = 0.08
+CROPS_TTL = 30 * 86400
+
+
+def crops(west, south, east, north, cache, source=None, fetcher=None):
+    """Real crop-area polygons for a small box (see providers/landcover.py for what each dataset can and cannot say)."""
+    for v, lo, hi in ((west, -180, 180), (east, -180, 180), (south, -90, 90), (north, -90, 90)):
+        if not (lo <= v <= hi):
+            raise ValueError("coordinates out of range")
+    if not (west < east and south < north):
+        raise ValueError("west must be less than east and south less than north")
+    if east - west > CROPS_MAX_SPAN_DEG or north - south > CROPS_MAX_SPAN_DEG:
+        raise ValueError("the box is too large: at most %s degrees on a side (zoom in)" % CROPS_MAX_SPAN_DEG)
+    if source not in (None, "auto", "cdl", "worldcover"):
+        raise ValueError("source must be auto, cdl or worldcover")
+    src = landcover.choose_source(west, south, east, north) if source in (None, "auto") else source
+    key = "crops:v1:%s:%.3f:%.3f:%.3f:%.3f" % (src, west, south, east, north)
+    fc, fetched, stale, hit = cache.fetch(key, CROPS_TTL, lambda: _heavy(lambda: (fetcher or landcover.fetch)(west, south, east, north, source=src)))
+    meta = dict(fc.get("meta", {}), served_from_cache=hit, stale_copy=stale, is_live=False)
+    return {"type": "FeatureCollection", "features": fc["features"], "meta": meta}
+
+
 def sources(cache=None):
     return {"sources": [
         {"id": "power", "name": "NASA POWER daily", "kind": "reanalysis", "auth_for_farmer": False, "server_auth": "none",
@@ -362,6 +384,8 @@ def sources(cache=None):
         {"id": "imerg", "name": "NASA GPM IMERG daily rain", "kind": "satellite_estimate", "auth_for_farmer": False,
          "server_auth": "Earthdata Login (verified: NASA redirects to login)", "instant": False,
          "status": "recent_values" if config.EARTHDATA_TOKEN else "discovery_only", "server_token_configured": bool(config.EARTHDATA_TOKEN), "endpoint": "/api/recent"},
+        {"id": "crop_areas", "name": "Crop areas: USDA CDL (USA, crop types) and ESA WorldCover (cropland only, global)", "kind": "model_prediction", "auth_for_farmer": False,
+         "server_auth": "none", "instant": False, "status": "enabled", "endpoint": "/api/crops"},
     ], "not_used": [
         {"name": "POWER IMERG_PRECTOT", "why": "Listed in the POWER catalogue but returned only fill values at every date tested."},
         {"name": "Hydrology Data Rods (GLDAS)", "why": "Service is being discontinued."},
