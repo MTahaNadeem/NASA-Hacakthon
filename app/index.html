@@ -20,40 +20,78 @@
 
 <header class="nav">
   <div class="nav-in">
-    <a class="brand" href="#top"><span class="logo" aria-hidden="true"></span><span>Rotation Explorer</span></a>
+    <a class="brand" href="#top"><svg class="logo" viewBox="0 0 64 64" width="40" height="40" aria-hidden="true"><path d="M30 58V34C30 20 38 9 54 6c2 17-6 29-24 34z" fill="#2f7d4f"/><path d="M30 44C30 33 24 25 10 24c-1 12 6 21 20 22z" fill="#14452f"/><path d="M30 58V32" stroke="#faf7f0" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg><span class="brand-name">Rotation Explorer</span></a>
     <nav class="links" aria-label="Main">
-      <a href="#explore" data-i18n="nav.explore">Explore</a>
-      <a href="#steps" data-i18n="nav.how">How it works</a>
-      <a href="#scoring" data-i18n="nav.scoring">Scoring</a>
-      <a href="#data" data-i18n="nav.data">Data</a>
+      <a href="#top" data-nav="top" data-i18n="nav.home">Home</a>
+      <a href="#explore" data-nav="explore" data-i18n="nav.explore">Explore</a>
+      <a href="#steps" data-nav="steps" data-i18n="nav.how">How it works</a>
+      <a href="#scoring" data-nav="scoring" data-i18n="nav.scoring">Scoring</a>
+      <a href="#data" data-nav="data" data-i18n="nav.data">Data</a>
     </nav>
-    <label class="langsel">
-      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
-      <span class="sr" data-i18n="lang.label">Language</span>
-      <select id="lang"></select>
-    </label>
-    <button type="button" id="install" class="btn sm" data-i18n="pwa.install" hidden>Install app</button>
+    <div class="topright">
+      <label class="langsel">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>
+        <span class="sr" data-i18n="lang.label">Language</span>
+        <select id="lang"></select>
+      </label>
+      <a class="btn primary sm getstart" href="#step1" data-i18n="hero.start">Start here</a>
+      <button type="button" id="install" class="btn sm" data-i18n="pwa.install" hidden>Install app</button>
+    </div>
   </div>
 </header>
 
+<div class="page">
 <section class="hero" id="top" aria-labelledby="hero-title">
+  <div class="hero-photo" role="img" aria-label="Satellite view of irrigated farmland and rivers in Punjab"></div>
   <div class="hero-in">
     <div class="hero-copy">
-      <p class="eyebrow"><span class="dot"></span><span data-i18n="hero.eyebrow">NASA Space Apps Challenge 2026</span></p>
-      <h1 id="hero-title" data-i18n="hero.title">Find the best crop rotation for your farm</h1>
+      <p class="eyebrow"><span class="dot"></span><span data-i18n="nav.powered">Powered by NASA Earth Observations</span></p>
+      <h1 id="hero-title"><span data-i18n="hero.t1">Smarter crop rotation.</span> <em data-i18n="hero.t2">A greener tomorrow.</em></h1>
       <p class="lede" data-i18n="hero.sub"></p>
-      <div class="cta"><a class="btn primary lg" href="#step1" data-i18n="hero.start">Start here</a><a class="btn lg" href="#steps" data-i18n="hero.cta2">How it works</a></div>
+      <div class="cta"><a class="btn primary lg" href="#step1"><span data-i18n="hero.cta1">Explore the rotation planner</span><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a><a class="btn ghost lg" href="#steps" data-i18n="hero.cta2">How it works</a></div>
       <p class="note" data-i18n="hero.note"></p>
     </div>
     <div class="art" id="art" aria-hidden="true"></div>
   </div>
+  <p class="herocredit" data-i18n="hero.credit">Image: NASA GIBS, Landsat true-colour composite, Punjab</p>
 </section>
 
 <section class="trust" aria-label="Data sources">
   <div class="trust-in">
     <span class="trust-l" data-i18n="trust.label">Built on open data</span>
-    <ul><li>NASA POWER</li><li>MODIS</li><li>SMAP</li><li>GPM IMERG</li><li>SoilGrids</li></ul>
+    <ul>
+      <li><b>NASA POWER</b><small data-i18n="trust.power">Climate</small></li>
+      <li><b>MODIS</b><small data-i18n="trust.modis">Greenness</small></li>
+      <li><b>SMAP</b><small data-i18n="trust.smap">Soil moisture</small></li>
+      <li><b>GPM IMERG</b><small data-i18n="trust.imerg">Rainfall</small></li>
+      <li><b>SoilGrids</b><small data-i18n="trust.soil">Soil data</small></li>
+    </ul>
   </div>
+</section>
+
+<section class="story" id="rotation" aria-labelledby="rot-title">
+  <div class="story-in">
+    <div class="story-copy">
+      <p class="kicker" data-i18n="rot.kicker">Crop rotation</p>
+      <h2 id="rot-title" data-i18n="rot.title">One field, a planned sequence of crops</h2>
+      <p data-i18n="rot.text"></p>
+    </div>
+    <div class="seq" aria-label="Example rotation">
+      <ol>
+        <li><svg viewBox="0 0 24 24" width="44" height="44" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9"/><path d="M12 9c-2.5-.5-4-2-4-4.5 2.5.3 4 1.8 4 4.5zM12 9c2.5-.5 4-2 4-4.5-2.5.3-4 1.8-4 4.5zM12 14c-2.5-.5-4-2-4-4.5 2.5.3 4 1.8 4 4.5zM12 14c2.5-.5 4-2 4-4.5-2.5.3-4 1.8-4 4.5zM12 19c-2.5-.5-4-2-4-4.5 2.5.3 4 1.8 4 4.5zM12 19c2.5-.5 4-2 4-4.5-2.5.3-4 1.8-4 4.5zM12 4.5V2"/></svg><b data-i18n="crop.wheat">Wheat</b></li><li class="ar" aria-hidden="true"><svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h17M15 6l6 6-6 6"/></svg></li>
+        <li><svg viewBox="0 0 24 24" width="44" height="44" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c-3.5-1-5-5-5-10C7 7 9 3 12 2c3 1 5 5 5 10 0 5-1.5 9-5 10z"/><path d="M9.5 8h5M8.5 12h7M9 16h6M12 2v20"/><path d="M7 22c-2-1-3-3-3-5M17 22c2-1 3-3 3-5"/></svg><b data-i18n="crop.corn">Corn</b></li><li class="ar" aria-hidden="true"><svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h17M15 6l6 6-6 6"/></svg></li>
+        <li><svg viewBox="0 0 24 24" width="44" height="44" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15c2-6 8-11 16-11-1 8-6 14-12 16-2 .5-4-1-4-3 0-.7 0-1.4 0-2z"/><circle cx="10" cy="11" r="1"/><circle cx="14" cy="8" r="1"/><circle cx="8" cy="15" r="1"/></svg><b data-i18n="crop.soy">Soybean</b></li><li class="ar" aria-hidden="true"><svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h17M15 6l6 6-6 6"/></svg></li>
+        <li><svg viewBox="0 0 24 24" width="44" height="44" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9"/><path d="M12 9c-2.5-.5-4-2-4-4.5 2.5.3 4 1.8 4 4.5zM12 9c2.5-.5 4-2 4-4.5-2.5.3-4 1.8-4 4.5zM12 14c-2.5-.5-4-2-4-4.5 2.5.3 4 1.8 4 4.5zM12 14c2.5-.5 4-2 4-4.5-2.5.3-4 1.8-4 4.5zM12 19c-2.5-.5-4-2-4-4.5 2.5.3 4 1.8 4 4.5zM12 19c2.5-.5 4-2 4-4.5-2.5.3-4 1.8-4 4.5zM12 4.5V2"/></svg><b data-i18n="crop.wheat">Wheat</b></li>
+      </ol>
+      <p class="mini" data-i18n="rot.note"></p>
+    </div>
+  </div>
+  <ul class="feats">
+    <li><h3 data-i18n="feat.1.t"></h3><p data-i18n="feat.1.d"></p></li>
+    <li><h3 data-i18n="feat.2.t"></h3><p data-i18n="feat.2.d"></p></li>
+    <li><h3 data-i18n="feat.3.t"></h3><p data-i18n="feat.3.d"></p></li>
+    <li><h3 data-i18n="feat.4.t"></h3><p data-i18n="feat.4.d"></p></li>
+  </ul>
 </section>
 
 <div id="banner" class="banner" role="alert" hidden></div>
@@ -202,6 +240,8 @@
 </section>
 </main>
 
+<section class="finale" aria-labelledby="cta-title"><div class="finale-in"><div><h2 id="cta-title" data-i18n="cta.title">See what your land could grow next</h2><p data-i18n="cta.text"></p></div><a class="btn lg light" href="#step1"><span data-i18n="hero.cta1">Explore the rotation planner</span></a></div></section>
+</div>
 <footer class="foot"><div class="wrap" data-i18n="foot.text"></div></footer>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -213,6 +253,7 @@
 <script src="igh.js"></script>
 <script src="direct.js"></script>
 <script src="nasa.js"></script>
+<script src="shell.js"></script>
 <script src="cropmap.js"></script>
 <script src="app.js"></script>
 </body>

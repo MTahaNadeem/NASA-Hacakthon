@@ -259,6 +259,8 @@ I18N.add("zh", {
 "nasa.k.third_party":"非 NASA",
 "cov.loading":"土壤和卫星数据仍在加载。首次可能需要一分钟；上方结果会自动更新。",
 "cov.failed":"无法加载：{what}。上方结果只使用已加载的数据。请打开诊断页面查看原因。",
+"nav.home":"首页","nav.powered":"由 NASA 地球观测提供支持","trust.power":"气候","trust.modis":"绿度","trust.smap":"土壤湿度","trust.imerg":"降雨","trust.soil":"土壤数据",
+"hero.t1":"更聪明的轮作。","hero.t2":"更绿的明天。","hero.credit":"图片：NASA GIBS，Landsat 真彩色合成，旁遮普（约 2000 年）","rot.kicker":"作物轮作","rot.title":"一块地，一套有计划的作物顺序","rot.text":"轮流种植不同作物，例如先小麦，再玉米，再豆类，可以保护土壤并分散天气风险。Rotation Explorer 利用 NASA 地球观测数据，为你所在的地方比较各种方案。","rot.note":"这只是示例顺序，并非对你农场的建议。","feat.1.t":"真实的 NASA 数据","feat.1.d":"来自 NASA 的气候、降雨、土壤湿度和绿度，并标明来源和缺口。","feat.2.t":"比较多种轮作","feat.2.d":"至少三个方案，始终包含你现在种的，用通俗的话排序。","feat.3.t":"气候风险一目了然","feat.3.d":"高温、霜冻、干旱期和强降雨按你的地点展示，而不是藏在一个分数里。","feat.4.t":"给出依据，而非定论","feat.4.d":"每个结果都显示其范围、数据缺口以及它无法告诉你的事。","cta.title":"看看你的土地下一步能种什么","cta.text":"在地图上选好位置，一分钟比较各种轮作。免费，无需注册。",
 "cov.smapimerg":"无法读取此地的 SMAP 和 IMERG，因此评分只使用其他数据。服务器能够读取时，它们的近期数值会显示在“NASA 数据”标签页。",
 "cov.smapimerg.wait":"SMAP 和 IMERG 仍在加载。到达后会对评分做小幅调整（各最多 7.5%）。",
 "cov.smapimerg.used":"SMAP 和 IMERG（最近 30 天）以小幅调整的方式用于评分，各最多 7.5%。它们绝不会取代长期天气记录。",
