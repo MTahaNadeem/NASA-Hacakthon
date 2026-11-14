@@ -58,6 +58,7 @@ def health():
     import time
     # uptime resets when the server restarts (for instance when a small free host runs out of memory); peak memory shows how close it got
     return {"status": "ok", "earthdata_server_token_configured": bool(config.EARTHDATA_TOKEN),
+            "pid": __import__("os").getpid(), "web_concurrency_env": __import__("os").environ.get("WEB_CONCURRENCY"),
             "uptime_s": int(time.time() - _STARTED), "peak_memory_mb": round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)}
 
 

@@ -7,8 +7,10 @@ services:
     plan: free
     rootDir: backend
     buildCommand: pip install -r requirements.txt
+    # --workers 1: uvicorn otherwise reads Render's WEB_CONCURRENCY and starts several processes. Each repeats the ~90 MB baseline and keeps its OWN
+    # job list, so a polling page landed on a different process every time and started duplicate NASA jobs. One process = one job list.
     # --proxy-headers: behind Render's proxy, use the visitor's real address for the rate limit instead of one shared address
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*'
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1 --proxy-headers --forwarded-allow-ips='*'
     healthCheckPath: /api/health
     envVars:
       - key: PYTHON_VERSION
