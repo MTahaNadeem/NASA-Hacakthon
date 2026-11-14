@@ -18,23 +18,33 @@
     }).then(function (j) { if (timer) clearTimeout(timer); return j; }, function (e) { if (timer) clearTimeout(timer); throw e; });
   }
   function q(lat, lon) { return "?lat=" + encodeURIComponent(lat.toFixed(4)) + "&lon=" + encodeURIComponent(lon.toFixed(4)); }
-  // Soil and satellite data: the browser reads the files itself first (about 9 s for soil, 20 s with MODIS, no cold start, nothing to wake).
-  // Some browsers cannot: Firefox sends a CORS permission check for range requests that ISRIC's server does not answer, and some networks block
-  // the file hosts. Then the optional backend (which reads the same files on the server) takes over, and the page remembers that, so it does not
-  // retry the browser path for every place. With no backend configured the error is reported, never hidden.
-  var directBroken = false;
+  // Soil and satellite data come from two routes that are raced, because neither is fast everywhere:
+  //  * the optional backend: a small JSON request, usually 0.5-15 s (shared cache, fast server link), but a free host can be asleep for about a minute;
+  //  * the browser reading the files itself: about 5-10 s on a fast connection but 90+ s on a slow one (about 95 small requests for soil), and
+  //    impossible in Firefox (it sends a CORS check for range requests that ISRIC's server does not answer) or on networks that block the file hosts.
+  // The backend is asked at once. The browser route starts 2.5 s later if the backend has not answered, or immediately if the backend fails.
+  // The first success wins. With no backend only the browser route exists; with no browser route only the backend. Errors are never hidden.
+  var directBroken = false, RACE_DELAY_MS = 2500;
   function direct() { return !directBroken && root.DirectData && root.DirectData.available() ? root.DirectData : null; }
-  function viaBrowserThenBackend(run, path, ms) {
-    var d = direct();
-    if (!d) return backendUrl() ? get(path, ms) : Promise.reject(new Error("this browser cannot read the data files and no backend is configured"));
-    return run(d).catch(function (e) { if (!backendUrl()) throw e; directBroken = true; return get(path, ms); });
+  function race(run, path, ms) {
+    var d = direct(), hasBackend = !!backendUrl();
+    if (!hasBackend) return d ? run(d) : Promise.reject(new Error("this browser cannot read the data files and no backend is configured"));
+    if (!d) return get(path, ms);
+    return new Promise(function (resolve, reject) {
+      var done = false, started = false, errs = [], timer = null;
+      function ok(v) { if (!done) { done = true; clearTimeout(timer); resolve(v); } }
+      function bad(e) { errs.push(e); if (errs.length === 2 && !done) { done = true; reject(errs[0]); } }
+      function startDirect() { if (started || done) return; started = true; clearTimeout(timer); run(d).then(ok, function (e) { directBroken = true; bad(e); }); }
+      get(path, ms).then(ok, function (e) { bad(e); startDirect(); });
+      timer = setTimeout(startDirect, RACE_DELAY_MS);
+    });
   }
   function fetchLocation(lat, lon) {
     if (mode() !== "backend") return root.DirectData.status();
     return get("/api/location" + q(lat, lon), 90000).catch(function (e) { if (!(root.DirectData && root.DirectData.available())) throw e; return root.DirectData.status(); });
   }
-  function fetchNdvi(lat, lon) { return viaBrowserThenBackend(function (d) { return d.ndvi(lat, lon, 36); }, "/api/ndvi" + q(lat, lon) + "&months=36", 150000); }
-  function fetchSoil(lat, lon) { return viaBrowserThenBackend(function (d) { return d.soil(lat, lon); }, "/api/soil" + q(lat, lon), 120000); }
+  function fetchNdvi(lat, lon) { return race(function (d) { return d.ndvi(lat, lon, 36); }, "/api/ndvi" + q(lat, lon) + "&months=36", 150000); }
+  function fetchSoil(lat, lon) { return race(function (d) { return d.soil(lat, lon); }, "/api/soil" + q(lat, lon), 120000); }
   // Free hosts sleep when idle; touching /api/health as soon as the page opens starts the wake-up while the visitor is still choosing a place.
   function wake() { if (mode() === "backend") get('/api/health', 70000).catch(function () {}); }
 
@@ -117,6 +127,6 @@
     return out.join("");
   }
 
-  var api = { _reset: function () { directBroken = false; }, wake: wake, mode: mode, enabled: enabled, fetchLocation: fetchLocation, fetchNdvi: fetchNdvi, fetchSoil: fetchSoil, model: model, html: html, spark: spark };
+  var api = { _reset: function () { directBroken = false; }, _delay: function (ms) { RACE_DELAY_MS = ms; }, wake: wake, mode: mode, enabled: enabled, fetchLocation: fetchLocation, fetchNdvi: fetchNdvi, fetchSoil: fetchSoil, model: model, html: html, spark: spark };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.NasaPanel = api;
 })(typeof window !== "undefined" ? window : globalThis);
