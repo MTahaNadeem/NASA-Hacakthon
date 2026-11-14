@@ -1,9 +1,12 @@
 /* Rotation Explorer service worker: makes the app installable and usable offline for pages/places already visited.
  * Same-origin files are network-first (so you always get fresh code online, and the cached copy offline).
- * Live data APIs and map tiles are never cached here. */
-const VERSION = "rx-v3", SHELL = ["./", "index.html", "style.css", "app.js", "scoring.js", "live.js", "config.js", "igh.js", "direct.js", "nasa.js", "i18n.js", "i18n/en.js", "places.json", "rotations.json", "data/index.json", "manifest.webmanifest", "icon.svg"];
+ * Live data APIs and map tiles are never cached here. Cross-origin requests are cached ONLY for the static map library and fonts: an earlier
+ * "cache every cross-origin GET" rule also saved the backend's /api/recent, /api/location, /api/soil and /api/ndvi answers and the MODIS read
+ * token, so polling a running job kept returning its first "running" reply and data could be stale. Everything else goes straight to the network. */
+const VERSION = "rx-v4", SHELL = ["./", "index.html", "style.css", "app.js", "scoring.js", "live.js", "config.js", "igh.js", "direct.js", "nasa.js", "i18n.js", "i18n/en.js", "places.json", "rotations.json", "data/index.json", "manifest.webmanifest", "icon.svg"];
 const CDN = ["https://unpkg.com/leaflet@1.9.4/dist/leaflet.js", "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"];
 const LIVE = /power\.larc\.nasa\.gov|rest\.isric\.org|geocoding-api\.open-meteo\.com|tile\.openstreetmap\.org/;
+const STATIC_CDN = /^(unpkg\.com|fonts\.googleapis\.com|fonts\.gstatic\.com)$/;
 
 self.addEventListener("install", e => {
   self.skipWaiting();
@@ -23,8 +26,9 @@ self.addEventListener("fetch", e => {
   if (url.origin === self.location.origin) {
     e.respondWith(fetch(req).then(r => { if (r.ok) { const copy = r.clone(); caches.open(VERSION).then(c => c.put(req, copy)); } return r; })
       .catch(() => caches.match(req, { ignoreSearch: true }).then(r => r || (req.mode === "navigate" ? caches.match("index.html") : Response.error()))));
-  } else {
+  } else if (STATIC_CDN.test(url.host)) {
     // Leaflet from unpkg and the font files: cache-first so the map still loads offline
     e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(r => { if (r.ok || r.type === "opaque") { const copy = r.clone(); caches.open(VERSION).then(c => c.put(req, copy)); } return r; })));
   }
+  // anything else cross-origin (the backend API, NASA, ISRIC, MODIS storage, Planetary Computer, CMR): not handled here, so it always hits the network
 });
