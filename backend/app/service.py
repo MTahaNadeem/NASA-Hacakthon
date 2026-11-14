@@ -2,7 +2,12 @@
 import datetime as dt
 
 from . import config, grid, indicators, provenance as pv
-from .providers import cmr, modis, power, soilgrids
+import concurrent.futures as cf
+import math
+import threading
+import time
+
+from .providers import cmr, harmony, modis, power, soilgrids
 
 POWER_RES = "0.5 deg lat x 0.625 deg lon (meteorology); 1 x 1 deg (solar radiation)"
 
@@ -97,7 +102,7 @@ def _cmr_block(product, cache):
         "status": "discovery_only" if info else "unavailable",
         "server_token_configured": token,
         "reason": ("Newest acquisition found via NASA CMR (public). Reading its values needs an Earthdata Login on the SERVER; "
-                   + ("a server token is configured but the reader has not been validated yet, so no values are served."
+                   + ("a server token is configured, so recent values are read separately (see /api/recent); none are part of this response."
                       if token else "no server token is configured, so no values are served.")
                    + " Farmers never need an account.") if info else (err or "NASA CMR did not answer."),
         "provenance": pv.make("NASA CMR", spec["title"], "observation" if product == "smap" else "satellite_estimate",
@@ -189,6 +194,130 @@ def soil(lat, lon, cache, fetcher=None):
     }
 
 
+RECENT_DAYS = 30
+RECENT_TTL = 6 * 3600
+_recent_jobs = {}
+_recent_lock = threading.Lock()
+# NASA's job queue slows down for everyone when several jobs run at once (measured: ~30 s alone, 110 s+ with overlapping runs),
+# so at most this many places are read at the same time; others wait their turn and stay 'running'.
+_recent_slots = threading.BoundedSemaphore(2)
+
+
+def summarise_imerg(rows):
+    vals = [(d, v) for d, v in rows if v is not None]
+    last7 = [v for d, v in vals if d >= (dt.date.fromisoformat(rows[-1][0]) - dt.timedelta(days=6)).isoformat()] if rows else []
+    return {"days_listed": len(rows), "valid_days": len(vals), "total_mm": round(sum(v for _, v in vals), 1),
+            "rainy_days": sum(1 for _, v in vals if v >= 1), "heavy_days": sum(1 for _, v in vals if v >= 20),
+            "last7_mm": round(sum(last7), 1) if last7 else None,
+            "max_day": (lambda m: {"date": m[0], "mm": m[1]})(max(vals, key=lambda x: x[1])) if vals else None,
+            "daily": [{"date": d, "mm": v} for d, v in rows]}
+
+
+def summarise_smap(rows):
+    vals = [(d, v) for d, v in rows if v is not None]
+    return {"days_listed": len(rows), "valid_passes": len(vals),
+            "latest": {"date": vals[-1][0], "value": vals[-1][1]} if vals else None,
+            "mean": round(sum(v for _, v in vals) / len(vals), 3) if vals else None,
+            "min": min(v for _, v in vals) if vals else None, "max": max(v for _, v in vals) if vals else None,
+            "observations": [{"date": d, "value": v} for d, v in vals]}
+
+
+def _section(name, rows, now):
+    """Summary + provenance for one product's daily rows."""
+    if name == "imerg":
+        s = summarise_imerg(rows); through = max((d for d, v in rows if v is not None), default=None)
+        s["provenance"] = pv.make("NASA GPM IMERG, read through NASA Harmony", harmony.PRODUCTS["imerg"]["title"], "satellite_estimate", units="mm/day",
+                                  spatial_resolution="0.1 degree (about 10 km cell)", temporal_resolution="daily", period="last %d days" % RECENT_DAYS,
+                                  data_through=through, fetched_at=now, auth="Earthdata Login (held by the server only)",
+                                  note="This is the Late run: a preliminary estimate made about a day after the rain. NASA's later Final run can differ. A satellite estimate of rain over a 10 km cell, not a rain-gauge measurement.")
+        return s
+    s = summarise_smap(rows); through = max((d for d, v in rows if v is not None), default=None)
+    s["provenance"] = pv.make("NASA SMAP, read through NASA Harmony", harmony.PRODUCTS["smap"]["title"], "satellite_estimate", units="m3/m3 (volumetric soil moisture)",
+                              spatial_resolution="9 km", temporal_resolution="a reading about every 2-3 days", period="last %d days" % RECENT_DAYS,
+                              data_through=through, fetched_at=now, auth="Earthdata Login (held by the server only)",
+                              note="Moisture of the top few centimetres of soil from a satellite radiometer (morning pass), not the root zone. Many days have no reading at a place; frozen, very wet or densely vegetated ground can also give none.")
+    return s
+
+
+def _recent_compute(lat, lon, fetcher, today, on_part=None):
+    """Both products run at once; each is reported through on_part(name, section) the moment it finishes, so the fast one
+    (IMERG, ~10 s) is not held back by the slow one (SMAP, ~45 s or more)."""
+    end, start = today, today - dt.timedelta(days=RECENT_DAYS - 1)
+    out, errors = {}, {}
+    with cf.ThreadPoolExecutor(max_workers=2) as ex:
+        futs = {ex.submit(fetcher, name, lat, lon, start.isoformat(), end.isoformat()): name for name in ("imerg", "smap")}
+        for fu in cf.as_completed(futs):
+            name = futs[fu]
+            try:
+                out[name] = _section(name, fu.result(), time.time())
+                if on_part:
+                    on_part(name, out[name])
+            except Exception as e:           # one product failing must not hide the other
+                errors[name] = str(e)[:200]
+    if not out:
+        raise harmony.HarmonyError("; ".join("%s: %s" % kv for kv in errors.items()))
+    res = {"window": {"start": start.isoformat(), "end": end.isoformat(), "days": RECENT_DAYS}, "cell": {"lat": lat, "lon": lon, "size_deg": 0.1},
+           "errors": errors, "gaps": [], **out}
+    if "smap" in out and out["smap"]["valid_passes"] == 0:
+        res["gaps"].append("SMAP has no valid soil-moisture reading at this place in the last %d days." % RECENT_DAYS)
+    for k, msg in errors.items():
+        res["gaps"].append("%s could not be loaded: %s" % (k.upper(), msg))
+    return res
+
+
+def _default_fetcher(name, lat, lon, start, end):
+    return harmony.fetch_series(name, lat, lon, start, end)
+
+
+def recent(lat, lon, cache, fetcher=None, today=None, background=True):
+    """Recent satellite soil moisture (SMAP) and rain (IMERG). Takes ~10-45 s the first time, so it runs in the background:
+    returns {'status': 'running'} until ready, then the cached result. Server token required; otherwise 'not_configured'."""
+    lat, lon = grid.check_lat_lon(lat, lon)
+    if fetcher is None:
+        if not config.EARTHDATA_TOKEN:
+            return {"status": "not_configured", "reason": "No Earthdata token is configured on the server, so recent SMAP and IMERG values cannot be read. Farmers never need one."}
+        fetcher = _default_fetcher
+    today = today or dt.date.today()
+    # Snap to the 0.1 degree cell centre: every place in the cell gets the same, deterministic answer (and shares one NASA job),
+    # as with the weather data. IMERG's own cells are 0.1 degree; SMAP's 9 km cell nearest the centre is used.
+    ci, cj = math.floor(lat * 10), math.floor(lon * 10)
+    clat, clon = round(ci / 10 + 0.05, 3), round(cj / 10 + 0.05, 3)
+    key = "recent:v2:%d:%d" % (ci, cj)
+    hit = cache.get(key)
+    if hit:
+        v, fetched, _ = hit
+        return dict(v, status="ready", served_from_cache=True)
+    with _recent_lock:
+        job = _recent_jobs.get(key)
+        if job and job["state"] == "running":
+            return dict({"status": "running", "window": job.get("window"), "cell": job.get("cell")}, **job.get("partial", {}))
+        if job and job["state"] == "error" and time.time() - job["at"] < 60:
+            return {"status": "error", "reason": job["error"]}
+        _recent_jobs[key] = {"state": "running", "at": time.time(), "partial": {}, "cell": {"lat": clat, "lon": clon, "size_deg": 0.1},
+                             "window": {"start": (today - dt.timedelta(days=RECENT_DAYS - 1)).isoformat(), "end": today.isoformat(), "days": RECENT_DAYS}}
+
+    def work():
+        try:
+            def part(name, section):
+                with _recent_lock:
+                    if key in _recent_jobs:
+                        _recent_jobs[key].setdefault("partial", {})[name] = section
+            with _recent_slots:
+                res = _recent_compute(clat, clon, fetcher, today, on_part=part)
+            cache.put(key, res, RECENT_TTL)
+            with _recent_lock:
+                _recent_jobs.pop(key, None)
+        except Exception as e:
+            with _recent_lock:
+                _recent_jobs[key] = {"state": "error", "at": time.time(), "error": str(e)[:240]}
+    if background:
+        threading.Thread(target=work, daemon=True).start()
+        return {"status": "running"}
+    work()
+    hit = cache.get(key)
+    return dict(hit[0], status="ready", served_from_cache=False) if hit else {"status": "error", "reason": _recent_jobs.get(key, {}).get("error", "failed")}
+
+
 def sources(cache=None):
     return {"sources": [
         {"id": "power", "name": "NASA POWER daily", "kind": "reanalysis", "auth_for_farmer": False, "server_auth": "none",
@@ -199,10 +328,10 @@ def sources(cache=None):
          "instant": True, "status": "enabled", "endpoint": "/api/soil"},
         {"id": "smap", "name": "NASA SMAP L3 soil moisture 9 km", "kind": "observation", "auth_for_farmer": False,
          "server_auth": "Earthdata Login (documented)", "instant": False,
-         "status": "discovery_only", "server_token_configured": bool(config.EARTHDATA_TOKEN), "endpoint": "/api/location (soil_moisture.smap)"},
+         "status": "recent_values" if config.EARTHDATA_TOKEN else "discovery_only", "server_token_configured": bool(config.EARTHDATA_TOKEN), "endpoint": "/api/recent"},
         {"id": "imerg", "name": "NASA GPM IMERG daily rain", "kind": "satellite_estimate", "auth_for_farmer": False,
-         "server_auth": "Earthdata Login (assumed, not verified)", "instant": False,
-         "status": "discovery_only", "server_token_configured": bool(config.EARTHDATA_TOKEN), "endpoint": "/api/location (rainfall.imerg)"},
+         "server_auth": "Earthdata Login (verified: NASA redirects to login)", "instant": False,
+         "status": "recent_values" if config.EARTHDATA_TOKEN else "discovery_only", "server_token_configured": bool(config.EARTHDATA_TOKEN), "endpoint": "/api/recent"},
     ], "not_used": [
         {"name": "POWER IMERG_PRECTOT", "why": "Listed in the POWER catalogue but returned only fill values at every date tested."},
         {"name": "Hydrology Data Rods (GLDAS)", "why": "Service is being discontinued."},

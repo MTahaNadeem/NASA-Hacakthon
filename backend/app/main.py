@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from . import config, service
 from .cache import Cache
 from .providers.cmr import CmrError
+from .providers.harmony import HarmonyError
 from .providers.modis import ModisError
 from .providers.power import PowerError
 from .providers.soilgrids import SoilError
@@ -43,7 +44,7 @@ def _upstream(fn):
         return fn()
     except ValueError as e:
         raise HTTPException(422, str(e))
-    except (PowerError, ModisError, CmrError, SoilError) as e:
+    except (PowerError, ModisError, CmrError, SoilError, HarmonyError) as e:
         # a real failure is reported as a failure; no substitute numbers are ever invented
         raise HTTPException(502, "NASA data source unavailable: %s" % e)
 
@@ -74,3 +75,9 @@ def ndvi(lat: float = LAT, lon: float = LON, months: int = Query(12, ge=1, le=36
 def soil(lat: float = LAT, lon: float = LON, cache: Cache = Depends(get_cache)):
     """Soil pH, organic carbon, clay, sand, silt (with 5th-95th percentile range) for the nearest mapped land. About 4-6 s the first time."""
     return _upstream(lambda: service.soil(lat, lon, cache))
+
+
+@app.get("/api/recent", dependencies=[Depends(limited)])
+def recent(lat: float = LAT, lon: float = LON, cache: Cache = Depends(get_cache)):
+    """Recent SMAP soil moisture and IMERG rain (last 30 days). Slow the first time, so it returns {'status': 'running'}: ask again every few seconds."""
+    return _upstream(lambda: service.recent(lat, lon, cache))

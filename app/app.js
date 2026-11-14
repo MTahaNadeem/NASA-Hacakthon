@@ -11,7 +11,7 @@
     map: null, markers: {}, customMarker: null, pin: null, loading: false, loadToken: 0, tab: "rot", status: null,
     cmp: null, cmpToken: 0, printOpen: [], urlTimer: null,
     provisional: false,
-    nasa: { status: "idle", key: null, loc: null, ndvi: null, soil: null, soilStatus: "idle", ndviStatus: "idle", token: 0 } };
+    nasa: { status: "idle", key: null, loc: null, ndvi: null, soil: null, soilStatus: "idle", recent: null, recentStatus: "idle", ndviStatus: "idle", token: 0 } };
   state.tab = "profile"; state.mine = [];
   var $ = function (id) { return document.getElementById(id); };
   var mean = Scoring.mean;
@@ -185,11 +185,16 @@
     if (!d || !NasaPanel.enabled()) { n.status = d ? "off" : "idle"; renderNasa(); return; }
     var key = d.lat.toFixed(4) + "," + d.lon.toFixed(4);
     if (n.key === key && n.status !== "err") return;            // same place, nothing to do
-    var token = ++n.token; n.key = key; n.status = "loading"; n.ndviStatus = "loading"; n.loc = null; n.ndvi = null; n.soil = null; n.ndviWhy = null; n.soilStatus = d.soil ? "ok" : (n.soilStatus === "loading" ? "loading" : "idle"); renderNasa();
+    var token = ++n.token; n.key = key; n.status = "loading"; n.ndviStatus = "loading"; n.loc = null; n.ndvi = null; n.soil = null; n.recent = null; n.recentStatus = "idle"; n.ndviWhy = null; n.soilStatus = d.soil ? "ok" : (n.soilStatus === "loading" ? "loading" : "idle"); renderNasa();
     NasaPanel.fetchLocation(d.lat, d.lon).then(function (j) {
       if (token !== n.token) return; n.loc = j; n.status = "ok"; renderNasa();
     }).catch(function () { if (token !== n.token) return; n.status = "err"; renderNasa(); });
     // the satellite series is slower (several seconds on first use), so it is a separate call and fills in when ready
+    if (NasaPanel.mode() === "backend") {       // extra evidence from NASA SMAP / IMERG; not used in the score, so it never delays the result
+      n.recentStatus = "loading"; renderNasa();
+      NasaPanel.fetchRecent(d.lat, d.lon, function (part) { if (token === n.token) { n.recent = part; renderNasa(); } }).then(function (j) { if (token !== n.token) return; n.recent = j; n.recentStatus = "ok"; renderNasa(); },
+        function (e) { if (token !== n.token) return; n.recentStatus = e && e.code === "not_configured" ? "off" : "err"; if (window.console) console.warn("recent SMAP/IMERG:", e); renderNasa(); });
+    }
     NasaPanel.fetchNdvi(d.lat, d.lon).then(function (j) {
       if (token !== n.token) return; n.ndvi = j; n.ndviStatus = "ok";
       // MODIS now feeds the bare-field factor for this place, so the ranking is recomputed with it
@@ -247,8 +252,10 @@
     $("t-nasa").hidden = !NasaPanel.enabled();
     if (!state.data) { el.innerHTML = "<p class='mini'>" + esc(t("nasa.pick")) + "</p>"; return; }
     if (n.status === "off") { el.innerHTML = "<p class='mini'>" + esc(t("nasa.off")) + "</p>"; return; }
-    var body = NasaPanel.html(NasaPanel.model(n.loc, n.ndvi, n.soil), t, esc), notes = "";
+    var body = NasaPanel.html(NasaPanel.model(n.loc, n.ndvi, n.soil, n.recent), t, esc), notes = "";
     if (n.status === "loading" || (n.status === "ok" && n.ndviStatus === "loading")) notes += "<p class='mini'>" + esc(t("nasa.loading")) + "</p>";
+    if (n.recentStatus === "loading") notes += "<p class='mini'>" + esc(t("nasa.rec.loading")) + "</p>";
+    if (n.recentStatus === "err") notes += "<p class='mini'>" + esc(t("nasa.rec.unavail")) + "</p>";
     if (n.status === "err" || n.ndviStatus === "err") notes += "<p class='mini nasa-err' role='alert'>" + esc(t("nasa.err")) + "</p>";
     el.innerHTML = notes + body;
   }

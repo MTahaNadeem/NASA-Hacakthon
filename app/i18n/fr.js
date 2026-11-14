@@ -259,7 +259,7 @@ I18N.add("fr", {
 "nasa.k.third_party":"Pas de la NASA",
 "cov.loading":"Les données de sol et de satellite sont encore en cours de chargement. La première fois, cela peut prendre jusqu'à une minute ; les résultats ci-dessus se mettent à jour tout seuls.",
 "cov.failed":"Chargement impossible : {what}. Les résultats ci-dessus n'utilisent que les données qui ont été chargées. Ouvrez la page de diagnostic pour voir pourquoi.",
-"cov.smapimerg":"SMAP et IMERG restent désactivés : leurs données exigent une connexion NASA qu'un site web public ne peut pas garder en sécurité.",
+"cov.smapimerg":"SMAP et IMERG ne sont pas utilisés dans le score. Leurs valeurs récentes apparaissent dans l'onglet « Données NASA » quand le serveur peut les lire.",
 "load.title":"Chargement des données de ce lieu",
 "load.weather":"Météo",
 "load.soil":"Sol",
@@ -270,5 +270,14 @@ I18N.add("fr", {
 "load.note":"Ces résultats sont provisoires et se mettent à jour à mesure que chaque partie arrive. Le résultat final apparaît quand les trois sont terminées.",
 "load.final":"Toutes les données sont chargées. Ce sont les résultats finaux.",
 "load.finalfail":"Terminé. Ces résultats n'utilisent que les données qui ont pu être chargées.",
-"conf.pending":"Confiance : mise à jour…"
+"conf.pending":"Confiance : mise à jour…",
+"nasa.rec.title":"Pluie et humidité du sol récentes par satellite ({days} derniers jours)",
+"nasa.rec.rain":"Pluie (IMERG) : {total} mm en {days} jours, sur {rainy} jours de pluie ; {last7} mm sur les 7 derniers jours.",
+"nasa.rec.soil":"Humidité du sol (SMAP) : dernière valeur {value} m³/m³ le {date} ; moyenne {mean} ; mesures sur {n} jours sur {m}.",
+"nasa.rec.nopass":"Humidité du sol (SMAP) : aucune mesure valide à cet endroit sur les {days} derniers jours.",
+"nasa.rec.note":"À titre indicatif seulement. Ces valeurs ne sont pas utilisées dans le score, et le satellite ne passe sur un lieu que tous les 2 à 3 jours.",
+"nasa.rec.loading":"Lecture de la pluie et de l'humidité du sol récentes par satellite auprès de la NASA. La pluie apparaît en général en quelques secondes ; l'humidité du sol peut prendre une à deux minutes.",
+"nasa.rec.unavail":"Les valeurs satellites récentes ne sont pas disponibles pour le moment. Le score n'est pas affecté.",
+"nasa.s.imerg":"Pluie (NASA GPM IMERG, version préliminaire)",
+"nasa.s.smap":"Humidité du sol (NASA SMAP)"
 });

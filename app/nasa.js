@@ -39,6 +39,24 @@
       timer = setTimeout(startDirect, RACE_DELAY_MS);
     });
   }
+  // Recent SMAP soil moisture and IMERG rain: needs a NASA login, which only the optional backend holds, and takes 10-45 s, so the
+  // backend works in the background and this asks again every few seconds. Rejects with .code = "not_configured" when the server has no token.
+  function fetchRecent(lat, lon, onPartial) {
+    if (mode() !== "backend") { var e0 = new Error("needs the backend"); e0.code = "no_backend"; return Promise.reject(e0); }
+    var t0 = Date.now();
+    function poll() {
+      return get("/api/recent" + q(lat, lon), 70000).then(function (j) {
+        if (j.status === "ready") return j;
+        if (j.status === "not_configured") { var e = new Error("not configured"); e.code = "not_configured"; throw e; }
+        if (j.status === "error") throw new Error(j.reason || "failed");
+        if (j.status === "running" && (j.imerg || j.smap) && onPartial) onPartial(j);     // the fast product (rain) is shown before the slow one (soil moisture)
+        if (Date.now() - t0 > 300000) throw new Error("timed out");
+        return new Promise(function (res) { setTimeout(res, POLL_MS); }).then(poll);
+      });
+    }
+    return poll();
+  }
+  var POLL_MS = 3000;
   function fetchLocation(lat, lon) {
     if (mode() !== "backend") return root.DirectData.status();
     return get("/api/location" + q(lat, lon), 90000).catch(function (e) { if (!(root.DirectData && root.DirectData.available())) throw e; return root.DirectData.status(); });
@@ -58,8 +76,8 @@
   }
 
   /* Turn API responses into what the panel shows. Everything is optional: a missing block is simply not drawn. */
-  function model(loc, ndvi, soil) {
-    var m = { recent: null, trend: null, sources: [], smap: null, imerg: null, ndvi: null };
+  function model(loc, ndvi, soil, recent) {
+    var m = { rec: null, recent: null, trend: null, sources: [], smap: null, imerg: null, ndvi: null };
     if (loc) {
       var r = loc.indicators && loc.indicators.recent_vs_normal;
       if (r) m.recent = { start: r.window_start, end: r.window_end, rain: num(r.rain_mm), norm: num(r.rain_normal_mm), pct: signed(r.rain_anomaly_pct),
@@ -77,6 +95,15 @@
       m.ndvi = { latest: lat ? num(lat.ndvi, 2) : null, date: lat ? lat.end : null, valid: n.valid_count, total: n.total_count,
                  series: (n.series || []).map(function (s) { return s.ndvi; }) };
       var p = prov("nasa.s.ndvi", n.provenance); if (p) m.sources.push(p);
+    }
+    if (recent && (recent.status === "ready" || recent.status === "running") && (recent.imerg || recent.smap)) {
+      var days = (recent.window || {}).days || 30, r = { days: days };
+      if (recent.imerg) { r.imerg = { total: num(recent.imerg.total_mm, 1), rainy: recent.imerg.rainy_days, last7: num(recent.imerg.last7_mm, 1) }; var pi = prov("nasa.s.imerg", recent.imerg.provenance); if (pi) m.sources.push(pi); }
+      if (recent.smap) {
+        var sm = recent.smap, pm = prov("nasa.s.smap", sm.provenance); if (pm) m.sources.push(pm);
+        r.smap = sm.latest ? { value: num(sm.latest.value, 3), date: sm.latest.date, mean: num(sm.mean, 3), n: sm.valid_passes, m: sm.days_listed } : { none: true };
+      }
+      m.rec = r;
     }
     if (soil && soil.provenance) { var sp = prov("nasa.s.soilgrids", soil.provenance); if (sp) m.sources.push(sp); }
     return m;
@@ -110,7 +137,14 @@
                (v.latest != null ? '<p class="mini">' + esc(t("nasa.ndviNow", { v: v.latest, date: v.date })) + "</p>" : "") +
                (v.valid < v.total ? '<p class="mini">' + esc(t("nasa.ndviGap", { n: v.total - v.valid, total: v.total })) + "</p>" : "") + "</div>");
     }
-    [["nasa.smap", m.smap], ["nasa.imerg", m.imerg]].forEach(function (x) {
+    if (m.rec && (m.rec.imerg || m.rec.smap)) {
+      var rc = m.rec, rl = [];
+      if (rc.imerg) rl.push(t("nasa.rec.rain", { total: rc.imerg.total, days: rc.days, rainy: rc.imerg.rainy, last7: rc.imerg.last7 == null ? "0" : rc.imerg.last7 }));
+      if (rc.smap) rl.push(rc.smap.none ? t("nasa.rec.nopass", { days: rc.days }) : t("nasa.rec.soil", rc.smap));
+      out.push('<div class="nasa-card"><h4>' + esc(t("nasa.rec.title", { days: rc.days })) + "</h4><ul>" + rl.map(function (l) { return "<li>" + esc(l) + "</li>"; }).join("") + "</ul><p class='mini'>" + esc(t("nasa.rec.note")) + "</p></div>");
+    }
+    [["nasa.smap", m.smap, "smap"], ["nasa.imerg", m.imerg, "imerg"]].forEach(function (x) {
+      if (m.rec && m.rec[x[2]]) return;            // the real recent values are shown above, so the "values not shown" notice would be wrong
       if (x[1] && !x[1].values) out.push('<div class="nasa-card"><h4>' + esc(t(x[0])) + "</h4><p class='mini'>" + (x[1].date ? esc(t("nasa.pending", { date: x[1].date })) : "") + "</p></div>");
     });
     if (m.sources.length) {
@@ -127,6 +161,6 @@
     return out.join("");
   }
 
-  var api = { _reset: function () { directBroken = false; }, _delay: function (ms) { RACE_DELAY_MS = ms; }, wake: wake, mode: mode, enabled: enabled, fetchLocation: fetchLocation, fetchNdvi: fetchNdvi, fetchSoil: fetchSoil, model: model, html: html, spark: spark };
+  var api = { _poll: function (ms) { POLL_MS = ms; }, fetchRecent: fetchRecent, _reset: function () { directBroken = false; }, _delay: function (ms) { RACE_DELAY_MS = ms; }, wake: wake, mode: mode, enabled: enabled, fetchLocation: fetchLocation, fetchNdvi: fetchNdvi, fetchSoil: fetchSoil, model: model, html: html, spark: spark };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.NasaPanel = api;
 })(typeof window !== "undefined" ? window : globalThis);

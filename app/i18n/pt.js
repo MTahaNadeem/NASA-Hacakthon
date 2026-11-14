@@ -259,7 +259,7 @@ I18N.add("pt", {
 "nasa.k.third_party":"Não é da NASA",
 "cov.loading":"Os dados de solo e de satélite ainda estão carregando. Na primeira vez pode levar até um minuto; os resultados acima se atualizam sozinhos.",
 "cov.failed":"Não foi possível carregar: {what}. Os resultados acima usam apenas os dados que carregaram. Abra a página de diagnóstico para ver o motivo.",
-"cov.smapimerg":"SMAP e IMERG continuam desligados: seus dados exigem um login da NASA que um site público não pode guardar com segurança.",
+"cov.smapimerg":"SMAP e IMERG não são usados na pontuação. Seus valores recentes aparecem na aba «Dados da NASA» quando o servidor consegue lê-los.",
 "load.title":"Carregando os dados deste local",
 "load.weather":"Clima",
 "load.soil":"Solo",
@@ -270,5 +270,14 @@ I18N.add("pt", {
 "load.note":"Estes resultados são preliminares e se atualizam conforme cada parte chega. O resultado final aparece quando as três terminam.",
 "load.final":"Todos os dados carregados. Estes são os resultados finais.",
 "load.finalfail":"Concluído. Estes resultados usam apenas os dados que puderam ser carregados.",
-"conf.pending":"Confiança: atualizando…"
+"conf.pending":"Confiança: atualizando…",
+"nasa.rec.title":"Chuva e umidade do solo recentes por satélite (últimos {days} dias)",
+"nasa.rec.rain":"Chuva (IMERG): {total} mm em {days} dias, em {rainy} dias de chuva; {last7} mm nos últimos 7 dias.",
+"nasa.rec.soil":"Umidade do solo (SMAP): último valor {value} m³/m³ em {date}; média {mean}; leituras em {n} de {m} dias.",
+"nasa.rec.nopass":"Umidade do solo (SMAP): nenhuma leitura válida neste local nos últimos {days} dias.",
+"nasa.rec.note":"Apenas informativo. Estes valores não são usados na pontuação, e o satélite passa por um local só a cada 2–3 dias.",
+"nasa.rec.loading":"Lendo da NASA a chuva e a umidade do solo recentes por satélite. A chuva costuma aparecer em segundos e a umidade do solo pode levar um ou dois minutos.",
+"nasa.rec.unavail":"Os valores recentes de satélite não estão disponíveis agora. A pontuação não é afetada.",
+"nasa.s.imerg":"Chuva (NASA GPM IMERG, versão preliminar)",
+"nasa.s.smap":"Umidade do solo (NASA SMAP)"
 });

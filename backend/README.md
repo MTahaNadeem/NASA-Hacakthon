@@ -32,6 +32,7 @@ A **NASA data** tab then appears. With `backendUrl` empty the tab stays hidden a
 | `GET /api/sources` | every source, its auth needs, status, and what was deliberately **not** used | instant |
 | `GET /api/location?lat=&lon=` | weather record, rain, modelled soil wetness, indicators, newest SMAP/IMERG acquisition dates | ~1-3 s first time for a grid cell, ~0.1 s after |
 | `GET /api/ndvi?lat=&lon=&months=12` | MODIS greenness series for the 250 m pixel, plus a 12-month climatology (`monthly_mean`, months with fewer than 2 composites left blank) | ~7 s for 12 months, ~15-22 s for 36 months the first time; ~0.01 s after |
+| `GET /api/recent?lat=&lon=` | **Needs `EARTHDATA_TOKEN`.** Last 30 days of NASA IMERG rain (Late run) and SMAP soil moisture for the 0.1 degree cell. Runs in the background: returns `running` (with each product as soon as it is ready), then `ready` | rain ~15-20 s, soil moisture ~30 s alone; longer if several places are read at once |
 | `GET /api/soil?lat=&lon=` | SoilGrids pH, organic carbon, clay, sand, silt (5th/50th/95th percentile) for the nearest mapped land, with the distance. **Not NASA** | ~4-6 s first time for a pixel, instant after |
 
 Every block has a `provenance` object: `source`, `dataset`, `kind` (`reanalysis` / `satellite_estimate` /
@@ -45,8 +46,7 @@ Every block has a `provenance` object: `source`, `dataset`, `kind` (`reanalysis`
 | NASA POWER (temperature, rain, humidity, solar, modelled soil wetness) | **Working, verified live**, no key |
 | MODIS NDVI 250 m through the anonymous Planetary Computer STAC | **Working, verified live**, no account |
 | ISRIC SoilGrids soil (not NASA) | **Working, verified live.** Read from ISRIC's tiled maps (the REST API took 38-60+ s and sometimes timed out) |
-| SMAP soil moisture | **Discovery only.** Newest acquisition date is real; values are not served |
-| GPM IMERG rain | **Discovery only.** Same |
+| SMAP soil moisture, GPM IMERG rain | **Recent 30-day values work with a server token** (`/api/recent`, verified live). Without a token: newest date only. Not used in the score |
 
 SMAP and IMERG files need an Earthdata Login (documented by NSIDC for SMAP). The server can hold **one** project
 token so farmers never log in, but the read path could not be tested where this was built. To test it yourself:
@@ -58,16 +58,36 @@ python backend/tools/validate_earthdata.py
 
 Until that prints `PASS` for both products, the API keeps saying `discovery_only`. It never invents values.
 
-To build a **recent SMAP soil-moisture and IMERG rain** reader we first need real answers from NASA about how one point can be
-requested without downloading whole files. `python backend/tools/probe_opendap.py` (needs your token in `EARTHDATA_TOKEN`)
-asks NASA's OPeNDAP service and writes `opendap_probe_report.txt`. It could not be completed from the build environment, whose
-network proxy does not show whether the token is attached (the answer was the same with a valid and an invalid token).
+### Recent SMAP soil moisture and IMERG rain (needs a NASA token on the server)
+
+Both datasets need an Earthdata Login (NASA redirects to the login page, verified). A server can hold one token so farmers never log in.
+The token is used with NASA **Harmony**, which cuts a small box and a date range out of the daily files, so only tens of kilobytes move.
+Verified live on 2026-11-14 with a real token:
+
+| | IMERG daily (Late run) | SMAP L3 9 km (morning pass) |
+|---|---|---|
+| Harmony job | ~9 s | ~30-45 s |
+| Files returned | one ~34 KB file per day | one ~35 KB file per day |
+| Reading | `precipitation`, mm/day, fill -9999.9 | `soil_moisture`, m3/m3, valid 0.02-0.5, fill -9999 |
+
+What you must do once:
+1. Earthdata account: **Applications -> Authorized Apps -> Approve More Applications**, approve the GES DISC and NSIDC applications (and Harmony).
+   Without this, jobs fail with 403.
+2. Create a token (Earthdata profile -> **Generate Token**; valid ~60 days) and set it as `EARTHDATA_TOKEN` in the Render dashboard
+   (Environment tab). Never put it in the repository or in `app/`. Renew it before it expires.
+
+Honest limits: these are **recent values only** (last 30 days), shown as extra evidence and **not used in the score** (the score needs
+20-year baselines, which cannot be built on demand). SMAP passes a place only every 2-3 days, so most days have no reading. IMERG Late is a
+preliminary estimate. Many places read at once slow NASA's queue down for everyone (measured: ~30 s alone, 110 s+ with overlapping runs), so the
+server reads at most two places at the same time. Without a token `/api/recent` says `not_configured` and the site shows only the newest-date notice.
+
+`tools/probe_opendap.py` and `tools/validate_earthdata.py` were used to find this route and are kept for troubleshooting.
 
 ## Configuration (environment variables only)
 
 | Variable | Meaning | Default |
 |---|---|---|
-| `EARTHDATA_TOKEN` | optional server-side token for SMAP/IMERG. **Never commit it, never put it in `app/`** | none |
+| `EARTHDATA_TOKEN` | server-side token for recent SMAP/IMERG values (`/api/recent`). **Never commit it, never put it in `app/`** | none |
 | `ALLOWED_ORIGINS` | comma-separated list of sites allowed to call the API, e.g. `https://you.github.io` | `*` |
 | `CACHE_DB` | SQLite file for the cache | `backend/cache.sqlite3` |
 | `RATE_LIMIT_PER_MIN` | requests per IP per minute | 60 |
@@ -98,7 +118,7 @@ error, and nothing is invented.
 ## Tests
 
 ```bash
-cd backend && python -m pytest tests -q          # 55 tests, no network needed
+cd backend && python -m pytest tests -q          # 82 tests, no network needed
 node tests/nasa.test.js                          # panel rendering, from the repo root
 ```
 

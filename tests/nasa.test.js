@@ -52,11 +52,32 @@ const ms = P.model(loc, ndvi, fx("api_soil_ames.json")); assert.strictEqual(ms.s
 const sg = ms.sources.find(x => x.label === "nasa.s.soilgrids"); assert.strictEqual(sg.kind, "third_party");
 const hs = P.html(ms, t, esc); assert.ok(hs.includes("k-third_party") && hs.includes(t("nasa.k.third_party")) && hs.includes("not NASA"));
 
+// 7c. recent satellite rain and soil moisture, from the REAL response captured 2026-11-14 (backend, Lahore)
+const rec = fx("api_recent_lahore.json"), mr = P.model(loc, ndvi, null, rec), hr = P.html(mr, t, esc);
+assert.ok(mr.rec && mr.rec.imerg && mr.rec.smap); assert.strictEqual(mr.rec.imerg.total, "6.6"); assert.strictEqual(mr.rec.smap.date, "2026-11-11");
+assert.ok(hr.includes("6.6 mm in 30 days") && hr.includes("on 2 rainy days") && hr.includes("latest 0.204 m³/m³ on 2026-11-11") && hr.includes("readings on 10 of 27 days"));
+assert.ok(hr.includes(t("nasa.rec.note")) && /not used in the score/.test(hr), "says plainly that these values are not part of the score");
+assert.strictEqual(mr.sources.filter(x => x.label === "nasa.s.imerg" || x.label === "nasa.s.smap").length, 2);
+assert.ok(mr.sources.filter(x => /imerg|smap/.test(x.label)).every(x => x.kind === "satellite_estimate" && x.through), "both are labelled satellite estimates with their data age");
+assert.ok(/Late run/.test(hr) && /preliminary/.test(hr) && /not the root zone/.test(hr), "the preliminary-run and top-soil-only caveats are shown");
+assert.ok(!hr.includes("values are not shown"), "the 'values not shown' notice is gone once real values are shown");
+assert.ok(P.html(P.model(loc, ndvi, null, null), t, esc).includes("values are not shown"), "...and is still there when there are no recent values");
+const noPass = JSON.parse(JSON.stringify(rec)); noPass.smap.latest = null; noPass.smap.valid_passes = 0;
+assert.ok(P.html(P.model(loc, ndvi, null, noPass), t, esc).includes("no valid reading at this place in the last 30 days"), "an empty SMAP window is stated, never filled");
+assert.ok(P.html(P.model(loc, ndvi, null, { status: "running" }), t, esc) === P.html(P.model(loc, ndvi), t, esc), "a job that is still running adds nothing");
+
+// 7d. a still-running job that already has the rain shows the rain (and no soil moisture) instead of waiting for both
+const partial = { status: "running", window: rec.window, imerg: rec.imerg }, hp = P.html(P.model(loc, ndvi, null, partial), t, esc);
+assert.ok(hp.includes("6.6 mm in 30 days") && !hp.includes("Soil moisture (SMAP): latest"), "rain shown, soil moisture not invented while it is still being read");
+assert.ok(hp.includes("values are not shown"), "the SMAP 'values not shown' notice stays until its real values arrive");
+
 // 8. disabled without a backend URL; no credentials in the client
 assert.strictEqual(P.enabled(), false);
 global.window = undefined;
 const src = fs.readFileSync(path.join(__dirname, "../app/nasa.js"), "utf8") + fs.readFileSync(path.join(__dirname, "../app/config.js"), "utf8");
-assert.ok(!/token|password|bearer|earthdata/i.test(src.replace(/NASA Earthdata logins and tokens belong ONLY[^*]*/i, "").replace(/Earthdata/g, "")) , "no secrets or auth in the client");
+for (const [why, re] of [["an auth header", /["']Authorization["']/i], ["a bearer token", /\bBearer\s/], ["a password", /\bpassw(or)?d\b/i], ["an Earthdata env var", /EARTHDATA_[A-Z]+/], ["the Earthdata login host", /urs\.earthdata\.nasa\.gov/i]])
+  assert.ok(!re.test(src), "the client must not contain " + why);
+assert.ok(/\bAuthorization\b|Bearer /.test("fetch(u,{headers:{'Authorization':'Bearer x'}})"), "the pattern list above really matches what it should catch");
 
 // 9. soil / satellite: backend and browser are raced; the first success wins; failures are never hidden
 (async () => {
@@ -96,6 +117,21 @@ assert.ok(!/token|password|bearer|earthdata/i.test(src.replace(/NASA Earthdata l
   reset(); global.AGRISHIFT = { backendUrl: "http://backend.example" }; delete global.DirectData; backendFast(); assert.strictEqual((await P.fetchSoil(1, 2)).from, "backend");
   // i) weather indicators: backend, falling back to the satellite freshness when it is asleep
   reset(); global.DirectData = directOk(); backendDown(); assert.strictEqual((await P.fetchLocation(1, 2)).from, "browser-status"); backendFast(); assert.strictEqual((await P.fetchLocation(1, 2)).from, "backend");
+  // j) recent values: asked again until ready; token-less server and failures are told apart; never available without a backend
+  P._poll(5); let asked = 0; global.AGRISHIFT = { backendUrl: "http://backend.example" };
+  global.fetch = async () => ({ ok: true, json: async () => (++asked < 3 ? { status: "running" } : { status: "ready", from: "backend" }) });
+  assert.strictEqual((await P.fetchRecent(1, 2)).from, "backend"); assert.strictEqual(asked, 3, "polled until ready");
+  global.fetch = async () => ({ ok: true, json: async () => ({ status: "not_configured" }) });
+  await assert.rejects(() => P.fetchRecent(1, 2), e => e.code === "not_configured");
+  global.fetch = async () => ({ ok: true, json: async () => ({ status: "error", reason: "NASA said no" }) });
+  await assert.rejects(() => P.fetchRecent(1, 2), /NASA said no/);
+  delete global.AGRISHIFT; await assert.rejects(() => P.fetchRecent(1, 2), e => e.code === "no_backend");
+  // k) partial results are handed to the page while the job is still running
+  P._poll(5); global.AGRISHIFT = { backendUrl: "http://backend.example" }; const seen = []; let n2 = 0;
+  global.fetch = async () => ({ ok: true, json: async () => (++n2 === 1 ? { status: "running" } : n2 === 2 ? { status: "running", imerg: { total_mm: 1 } } : { status: "ready", imerg: { total_mm: 1 }, smap: {} }) });
+  await P.fetchRecent(1, 2, j => seen.push(Object.keys(j).filter(k => k === "imerg" || k === "smap").join("+")));
+  assert.deepStrictEqual(seen, ["imerg"], "the page is told about the rain as soon as it exists");
+  P._poll(3000);
   delete global.AGRISHIFT; delete global.fetch; delete global.DirectData; P._reset(); P._delay(2500);
   console.log("nasa panel tests passed");
 })();

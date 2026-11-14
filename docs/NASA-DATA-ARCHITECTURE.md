@@ -145,6 +145,21 @@ The thresholds were **not** changed. More real evidence moved the labels, and wh
 
 Also fixed: the wheat rotation set was unreachable for searched places because it required 2+ frost days a year, which a weather grid cell averages away (Lahore 0.2). It now also triggers on a hot summer plus cool winter in the 20-40 degree latitude band.
 
+## 4d. SMAP and IMERG: recent values through NASA Harmony (VERIFIED 2026-11-14, needs a token)
+
+Earlier sections said SMAP/IMERG values were "not verified". They are now. Facts, all measured:
+* NASA's OPeNDAP service redirects to the Earthdata login for both datasets (tested), so a login is required for both.
+* A generated Earthdata token is accepted by NASA's catalogue (200, versus 401 for a made-up token) and by **Harmony**.
+* Harmony can subset both by a small box and a date range. IMERG job ~9 s, SMAP job ~30-45 s; one ~35 KB file per day comes back.
+* The Earthdata account must first approve the GES DISC and NSIDC applications; until then jobs fail with 403.
+* Dead ends found on the way: Giovanni's time-series service (Harmony's point route for IMERG) completes, but its result sits behind an
+  interactive login that did not accept the token; Harmony's variable names must be given without a leading slash.
+* Values seen for Lahore: IMERG 6.6 mm over 28 days; SMAP latest 0.204 m3/m3, readings on 10 of 27 days.
+
+Limits: 30-day window only, so these values are **extra evidence, not scoring inputs** (the score needs multi-year baselines). IMERG Late is
+preliminary. SMAP is one reading every 2-3 days and top-soil only. The server holds the token; the browser never sees it. NASA's queue slows with
+overlapping jobs, so the server runs at most two places at once.
+
 ## 4c. No server required: the browser reads the data itself (VERIFIED)
 
 A hosting account is not needed. Every source below was tested on 2026-11-14 with an `Origin: https://mtahanadeem.github.io` header and answered with browser-friendly CORS headers:

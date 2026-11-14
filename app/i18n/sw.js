@@ -259,7 +259,7 @@ I18N.add("sw", {
 "nasa.k.third_party":"Si ya NASA",
 "cov.loading":"Data ya udongo na setilaiti bado inapakiwa. Mara ya kwanza inaweza kuchukua hadi dakika moja; matokeo hapo juu husasishwa yenyewe.",
 "cov.failed":"Haikuweza kupakiwa: {what}. Matokeo hapo juu yanatumia data iliyopakiwa pekee. Fungua ukurasa wa uchunguzi kuona sababu.",
-"cov.smapimerg":"SMAP na IMERG zinabaki zimezimwa: data yao inahitaji kuingia NASA ambako tovuti ya umma haiwezi kuhifadhi kwa usalama.",
+"cov.smapimerg":"SMAP na IMERG hazitumiki kwenye alama. Thamani zao za hivi karibuni huonekana kwenye kichupo cha «Data za NASA» seva inapoweza kuzisoma.",
 "load.title":"Inapakia data ya mahali hapa",
 "load.weather":"Hali ya hewa",
 "load.soil":"Udongo",
@@ -270,5 +270,14 @@ I18N.add("sw", {
 "load.note":"Matokeo haya ni ya awali na husasishwa kila sehemu inapofika. Matokeo ya mwisho huonekana yote matatu yakikamilika.",
 "load.final":"Data yote imepakiwa. Haya ndiyo matokeo ya mwisho.",
 "load.finalfail":"Imekamilika. Matokeo haya yanatumia data iliyoweza kupakiwa pekee.",
-"conf.pending":"Uhakika: inasasishwa…"
+"conf.pending":"Uhakika: inasasishwa…",
+"nasa.rec.title":"Mvua na unyevu wa udongo wa hivi karibuni kwa setilaiti (siku {days} zilizopita)",
+"nasa.rec.rain":"Mvua (IMERG): {total} mm kwa siku {days}, katika siku {rainy} za mvua; {last7} mm katika siku 7 zilizopita.",
+"nasa.rec.soil":"Unyevu wa udongo (SMAP): wa hivi karibuni {value} m³/m³ tarehe {date}; wastani {mean}; vipimo katika siku {n} kati ya {m}.",
+"nasa.rec.nopass":"Unyevu wa udongo (SMAP): hakuna kipimo halali mahali hapa katika siku {days} zilizopita.",
+"nasa.rec.note":"Kwa taarifa tu. Thamani hizi hazitumiki kwenye alama, na setilaiti hupita mahali mara moja kila siku 2–3.",
+"nasa.rec.loading":"Inasoma mvua na unyevu wa udongo wa hivi karibuni kutoka NASA. Mvua kwa kawaida huonekana ndani ya sekunde chache, na unyevu wa udongo unaweza kuchukua dakika moja au mbili.",
+"nasa.rec.unavail":"Thamani za hivi karibuni za setilaiti hazipatikani sasa. Alama haiathiriki.",
+"nasa.s.imerg":"Mvua (NASA GPM IMERG, toleo la awali)",
+"nasa.s.smap":"Unyevu wa udongo (NASA SMAP)"
 });

@@ -259,7 +259,7 @@ I18N.add("en", {
 "nasa.k.third_party":"Not NASA",
 "cov.loading":"Soil and satellite data are still loading. This can take up to a minute the first time; the results above update by themselves.",
 "cov.failed":"Could not load: {what}. The results above use only the data that did load. Open the diagnostic page to see why.",
-"cov.smapimerg":"SMAP and IMERG stay off: their data needs a NASA login that a public website cannot safely keep.",
+"cov.smapimerg":"SMAP and IMERG are not used in the score. Their recent values appear in the NASA data tab when the server can read them.",
 "load.title":"Loading the data for this place",
 "load.weather":"Weather",
 "load.soil":"Soil",
@@ -270,5 +270,14 @@ I18N.add("en", {
 "load.note":"These results are preliminary and update as each part arrives. The final result appears when all three are done.",
 "load.final":"All data loaded. These are the final results.",
 "load.finalfail":"Finished. These results use only the data that could be loaded.",
-"conf.pending":"Confidence: updating…"
+"conf.pending":"Confidence: updating…",
+"nasa.rec.title":"Recent satellite rain and soil moisture (last {days} days)",
+"nasa.rec.rain":"Rain (IMERG): {total} mm in {days} days, on {rainy} rainy days; {last7} mm in the last 7 days.",
+"nasa.rec.soil":"Soil moisture (SMAP): latest {value} m³/m³ on {date}; average {mean}; readings on {n} of {m} days.",
+"nasa.rec.nopass":"Soil moisture (SMAP): no valid reading at this place in the last {days} days.",
+"nasa.rec.note":"Shown for information only. These values are not used in the score, and the satellite passes a place only every 2–3 days.",
+"nasa.rec.loading":"Reading recent satellite rain and soil moisture from NASA. Rain usually appears within seconds and soil moisture can take a minute or two.",
+"nasa.rec.unavail":"Recent satellite values are not available right now. The score is not affected.",
+"nasa.s.imerg":"Rain (NASA GPM IMERG, preliminary run)",
+"nasa.s.smap":"Soil moisture (NASA SMAP)"
 });

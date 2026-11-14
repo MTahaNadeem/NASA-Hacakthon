@@ -259,7 +259,7 @@ I18N.add("es", {
 "nasa.k.third_party":"No es de la NASA",
 "cov.loading":"Los datos de suelo y satélite aún se están cargando. La primera vez puede tardar hasta un minuto; los resultados de arriba se actualizan solos.",
 "cov.failed":"No se pudo cargar: {what}. Los resultados de arriba usan solo los datos que sí se cargaron. Abra la página de diagnóstico para ver el motivo.",
-"cov.smapimerg":"SMAP e IMERG siguen desactivados: sus datos requieren un acceso a la NASA que un sitio web público no puede guardar con seguridad.",
+"cov.smapimerg":"SMAP e IMERG no se usan en la puntuación. Sus valores recientes aparecen en la pestaña «Datos de la NASA» cuando el servidor puede leerlos.",
 "load.title":"Cargando los datos de este lugar",
 "load.weather":"Clima",
 "load.soil":"Suelo",
@@ -270,5 +270,14 @@ I18N.add("es", {
 "load.note":"Estos resultados son preliminares y se actualizan a medida que llega cada parte. El resultado final aparece cuando las tres terminan.",
 "load.final":"Todos los datos cargados. Estos son los resultados finales.",
 "load.finalfail":"Terminado. Estos resultados usan solo los datos que se pudieron cargar.",
-"conf.pending":"Confianza: actualizando…"
+"conf.pending":"Confianza: actualizando…",
+"nasa.rec.title":"Lluvia y humedad del suelo recientes por satélite (últimos {days} días)",
+"nasa.rec.rain":"Lluvia (IMERG): {total} mm en {days} días, en {rainy} días de lluvia; {last7} mm en los últimos 7 días.",
+"nasa.rec.soil":"Humedad del suelo (SMAP): último valor {value} m³/m³ el {date}; promedio {mean}; lecturas en {n} de {m} días.",
+"nasa.rec.nopass":"Humedad del suelo (SMAP): ninguna lectura válida en este lugar en los últimos {days} días.",
+"nasa.rec.note":"Solo informativo. Estos valores no se usan en la puntuación, y el satélite pasa por un lugar solo cada 2–3 días.",
+"nasa.rec.loading":"Leyendo de la NASA la lluvia y la humedad del suelo recientes por satélite. La lluvia suele aparecer en segundos y la humedad del suelo puede tardar uno o dos minutos.",
+"nasa.rec.unavail":"Los valores satelitales recientes no están disponibles ahora. La puntuación no se ve afectada.",
+"nasa.s.imerg":"Lluvia (NASA GPM IMERG, versión preliminar)",
+"nasa.s.smap":"Humedad del suelo (NASA SMAP)"
 });
