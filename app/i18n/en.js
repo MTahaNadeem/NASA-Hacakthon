@@ -256,5 +256,8 @@ I18N.add("en", {
 "nasa.tech":"Technical details (English)",
 "nasa.cache":"reused from our cache",
 "nasa.s.soilgrids":"Soil (ISRIC SoilGrids, not NASA)",
-"nasa.k.third_party":"Not NASA"
+"nasa.k.third_party":"Not NASA",
+"cov.loading":"Soil and satellite data are still loading. This can take up to a minute the first time; the results above update by themselves.",
+"cov.failed":"Could not load: {what}. The results above use only the data that did load. Open the diagnostic page to see why.",
+"cov.smapimerg":"SMAP and IMERG stay off: their data needs a NASA login that a public website cannot safely keep."
 });

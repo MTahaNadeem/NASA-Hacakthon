@@ -256,5 +256,8 @@ I18N.add("sw", {
 "nasa.tech":"Maelezo ya kiufundi (kwa Kiingereza)",
 "nasa.cache":"imetumika tena kutoka kwenye akiba yetu",
 "nasa.s.soilgrids":"Udongo (ISRIC SoilGrids, si ya NASA)",
-"nasa.k.third_party":"Si ya NASA"
+"nasa.k.third_party":"Si ya NASA",
+"cov.loading":"Data ya udongo na setilaiti bado inapakiwa. Mara ya kwanza inaweza kuchukua hadi dakika moja; matokeo hapo juu husasishwa yenyewe.",
+"cov.failed":"Haikuweza kupakiwa: {what}. Matokeo hapo juu yanatumia data iliyopakiwa pekee. Fungua ukurasa wa uchunguzi kuona sababu.",
+"cov.smapimerg":"SMAP na IMERG zinabaki zimezimwa: data yao inahitaji kuingia NASA ambako tovuti ya umma haiwezi kuhifadhi kwa usalama."
 });

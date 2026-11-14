@@ -256,5 +256,8 @@ I18N.add("es", {
 "nasa.tech":"Detalles técnicos (en inglés)",
 "nasa.cache":"reutilizado de nuestra caché",
 "nasa.s.soilgrids":"Suelo (ISRIC SoilGrids, no es de la NASA)",
-"nasa.k.third_party":"No es de la NASA"
+"nasa.k.third_party":"No es de la NASA",
+"cov.loading":"Los datos de suelo y satélite aún se están cargando. La primera vez puede tardar hasta un minuto; los resultados de arriba se actualizan solos.",
+"cov.failed":"No se pudo cargar: {what}. Los resultados de arriba usan solo los datos que sí se cargaron. Abra la página de diagnóstico para ver el motivo.",
+"cov.smapimerg":"SMAP e IMERG siguen desactivados: sus datos requieren un acceso a la NASA que un sitio web público no puede guardar con seguridad."
 });

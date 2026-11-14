@@ -9,7 +9,7 @@
     sl: { water: .5, income: .5, soil: .5 }, rainDelta: 0, tempDelta: 0, irr: "u", overrides: {},
     map: null, markers: {}, customMarker: null, pin: null, loading: false, loadToken: 0, tab: "rot", status: null,
     cmp: null, cmpToken: 0, printOpen: [], urlTimer: null,
-    nasa: { status: "idle", key: null, loc: null, ndvi: null, soil: null, ndviStatus: "idle", token: 0 } };
+    nasa: { status: "idle", key: null, loc: null, ndvi: null, soil: null, soilStatus: "idle", ndviStatus: "idle", token: 0 } };
   state.tab = "profile"; state.mine = [];
   var $ = function (id) { return document.getElementById(id); };
   var mean = Scoring.mean;
@@ -183,7 +183,7 @@
     if (!d || !NasaPanel.enabled()) { n.status = d ? "off" : "idle"; renderNasa(); return; }
     var key = d.lat.toFixed(4) + "," + d.lon.toFixed(4);
     if (n.key === key && n.status !== "err") return;            // same place, nothing to do
-    var token = ++n.token; n.key = key; n.status = "loading"; n.ndviStatus = "loading"; n.loc = null; n.ndvi = null; n.soil = null; renderNasa();
+    var token = ++n.token; n.key = key; n.status = "loading"; n.ndviStatus = "loading"; n.loc = null; n.ndvi = null; n.soil = null; n.ndviWhy = null; n.soilStatus = d.soil ? "ok" : (n.soilStatus === "loading" ? "loading" : "idle"); renderNasa();
     NasaPanel.fetchLocation(d.lat, d.lon).then(function (j) {
       if (token !== n.token) return; n.loc = j; n.status = "ok"; renderNasa();
     }).catch(function () { if (token !== n.token) return; n.status = "err"; renderNasa(); });
@@ -193,12 +193,26 @@
       // MODIS now feeds the bare-field factor for this place, so the ranking is recomputed with it
       if (state.data === d && LiveData.applyNdvi(d, j)) { renderProfile(); renderAll(); }
       renderNasa();
-    }).catch(function () { if (token !== n.token) return; n.ndviStatus = "err"; renderNasa(); });
-    if (!d.soil) NasaPanel.fetchSoil(d.lat, d.lon).then(function (j) {     // places loaded from the bundled files have no soil
-      if (token === n.token && state.data === d && LiveData.applySoil(d, j)) { n.soil = j; renderProfile(); renderAll(); renderNasa(); }
-    }).catch(function () {});
+    }).catch(function (e) { if (token !== n.token) return; n.ndviStatus = "err"; n.ndviWhy = String(e && e.message || e); if (window.console) console.warn("MODIS failed:", e); renderNasa(); });
+    if (!d.soil && n.soilStatus !== "loading") { n.soilStatus = "loading"; renderCovNote(); NasaPanel.fetchSoil(d.lat, d.lon).then(function (j) {     // places loaded from the bundled files have no soil
+      if (token !== n.token) return; n.soilStatus = (j.soil && j.soil.ph) ? "ok" : "none";
+      if (state.data === d && LiveData.applySoil(d, j)) { n.soil = j; renderProfile(); renderAll(); renderNasa(); } else renderCovNote();
+    }).catch(function (e) { if (token !== n.token) return; n.soilStatus = "err"; n.soilWhy = String(e && e.message || e); if (window.console) console.warn("soil failed:", e); renderCovNote(); }); }
+  }
+  // One honest line under "Data used": still loading, or what failed. Without it a blocked data source looks like "no data".
+  function renderCovNote() {
+    var el = $("covnote"), n = state.nasa; if (!el) return;
+    if (!NasaPanel.enabled() || !state.data) { el.textContent = ""; return; }
+    var bad = [];
+    if (n.soilStatus === "err") bad.push("SoilGrids");
+    if (n.ndviStatus === "err") bad.push("MODIS");
+    var msg = "";
+    if (bad.length) msg = t("cov.failed", { what: bad.join(", ") }) + " ";
+    else if (n.soilStatus === "loading" || n.ndviStatus === "loading") msg = t("cov.loading") + " ";
+    el.innerHTML = esc(msg + t("cov.smapimerg")) + (bad.length ? ' <a href="diagnose.html">diagnose.html</a>' : "");
   }
   function renderNasa() {
+    renderCovNote();
     var el = $("nasa"), n = state.nasa; if (!el) return;
     $("t-nasa").hidden = !NasaPanel.enabled();
     if (!state.data) { el.innerHTML = "<p class='mini'>" + esc(t("nasa.pick")) + "</p>"; return; }
@@ -332,7 +346,10 @@
     $("lat").value = lat.toFixed(2); $("lon").value = lon.toFixed(2);
     state.loading = true; setStatus("st.fetchPower");
     if (!state.data) $("cards").innerHTML = "<p class='mini'>" + esc(t("st.fetchPower")) + "</p>";
-    var lopts = NasaPanel.enabled() ? { soilSource: function (la, lo) { return NasaPanel.fetchSoil(la, lo).then(function (j) { state.nasa.soil = j; renderNasa(); return { soil: j.soil, km: j.distance_km || 0 }; }); } } : {};
+    var lopts = NasaPanel.enabled() ? { soilSource: function (la, lo) {
+      state.nasa.soilStatus = "loading"; renderCovNote();
+      return NasaPanel.fetchSoil(la, lo).then(function (j) { state.nasa.soil = j; state.nasa.soilStatus = (j.soil && j.soil.ph) ? "ok" : "none"; renderNasa(); return { soil: j.soil, km: j.distance_km || 0 }; },
+        function (e) { state.nasa.soilStatus = "err"; state.nasa.soilWhy = String(e && e.message || e); if (window.console) console.warn("soil failed:", e); renderCovNote(); throw e; }); } } : {};
     LiveData.fetchLocation(lat, lon, function (key) { if (token === state.loadToken) setStatus(key); }, lopts).then(function (d) {
       if (token !== state.loadToken) return;
       state.loading = false; state.data = d; buildCfg(d.lat, d.lon);

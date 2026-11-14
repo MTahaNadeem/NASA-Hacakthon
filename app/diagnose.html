@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diagnostics - Rotation Explorer</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:0;padding:20px 16px;background:#fafaf7;color:#14261c}
+  main{max-width:860px;margin:0 auto}
+  h1{font-size:1.4rem;margin:0 0 4px} p{margin:6px 0;color:#445}
+  button{font:inherit;padding:10px 18px;border-radius:10px;border:0;background:#1b7a4b;color:#fff;cursor:pointer;margin:10px 8px 10px 0}
+  table{width:100%;border-collapse:collapse;margin-top:12px;background:#fff;border:1px solid #dde}
+  td,th{padding:8px 10px;border-bottom:1px solid #eef;text-align:left;vertical-align:top;font-size:.92rem}
+  .ok{color:#0b6b3a;font-weight:700}.fail{color:#a11;font-weight:700}.wait{color:#888}
+  code,textarea{font:12px/1.4 ui-monospace,monospace}
+  textarea{width:100%;height:170px;margin-top:8px}
+  .small{font-size:.85rem;color:#667}
+</style>
+</head>
+<body>
+<main>
+  <h1>Diagnostics</h1>
+  <p>This page tests, from <b>your</b> browser, every step the site needs to load soil and satellite data. It sends nothing about you anywhere except to the public data servers listed below.</p>
+  <button id="run">Run the checks</button><a href="./">Back to the site</a>
+  <table id="t"><thead><tr><th>Check</th><th>Result</th><th>Time</th><th>Detail</th></tr></thead><tbody></tbody></table>
+  <p class="small">If a row says FAIL, copy the report below and send it to whoever maintains the site.</p>
+  <textarea id="report" readonly placeholder="The report appears here after the checks finish."></textarea>
+</main>
+<script src="igh.js"></script>
+<script src="direct.js"></script>
+<script src="config.js"></script>
+<script>
+(function () {
+  "use strict";
+  var rows = [], tb = document.querySelector("#t tbody");
+  function add(name) { var tr = document.createElement("tr"); tr.innerHTML = "<td></td><td class='wait'>running...</td><td></td><td></td>"; tr.children[0].textContent = name; tb.appendChild(tr); return tr; }
+  function done(tr, ok, ms, detail) { tr.children[1].className = ok ? "ok" : "fail"; tr.children[1].textContent = ok ? "OK" : "FAIL"; tr.children[2].textContent = ms + " ms"; tr.children[3].textContent = detail || ""; rows.push([tr.children[0].textContent, ok ? "OK" : "FAIL", ms + " ms", detail || ""]); }
+  function check(name, fn) {
+    var tr = add(name), t0 = Date.now();
+    return Promise.resolve().then(fn).then(function (d) { done(tr, true, Date.now() - t0, d); return true; }, function (e) { done(tr, false, Date.now() - t0, String(e && e.message || e)); return false; });
+  }
+  function http(url, opts, ms) {
+    var ctl = new AbortController(), timer = setTimeout(function () { ctl.abort(); }, ms || 30000);
+    return fetch(url, Object.assign({ signal: ctl.signal }, opts || {})).then(function (r) { clearTimeout(timer); return r; }, function (e) { clearTimeout(timer); throw new Error(e.name === "AbortError" ? "timed out" : "blocked or unreachable (" + e.message + ")"); });
+  }
+  var stacItem = null, token = null;
+  function run() {
+    tb.innerHTML = ""; rows = []; document.getElementById("report").value = "";
+    var chain = Promise.resolve();
+    function step(name, fn) { chain = chain.then(function () { return check(name, fn); }); }
+    step("Browser features", function () {
+      var ls = "blocked"; try { localStorage.setItem("agri.t", "1"); localStorage.removeItem("agri.t"); ls = "ok"; } catch (e) { /* blocked */ }
+      if (typeof fetch !== "function") throw new Error("this browser has no fetch()");
+      return "localStorage: " + ls + "; " + navigator.userAgent.slice(0, 90);
+    });
+    step("Site files load (igh.js, direct.js, tile index)", function () {
+      if (!window.IGH || !window.DirectData) throw new Error("igh.js or direct.js did not load (an old cached copy? try Ctrl+Shift+R)");
+      return http("data/soilgrids/tiles_phh2o.json").then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }).then(function (j) { return j.tiles.length + " soil tiles indexed"; });
+    });
+    step("GeoTIFF reader (vendor/geotiff.js)", function () {
+      return new Promise(function (res, rej) { var s = document.createElement("script"); s.src = "vendor/geotiff.js"; s.onload = function () { window.GeoTIFF ? res("loaded") : rej(new Error("script ran but GeoTIFF is missing")); }; s.onerror = function () { rej(new Error("could not load vendor/geotiff.js")); }; document.head.appendChild(s); });
+    });
+    step("NASA POWER (weather)", function () {
+      return http("https://power.larc.nasa.gov/api/temporal/daily/point?parameters=T2M&community=AG&longitude=74.35&latitude=31.55&start=20250101&end=20250102&format=JSON").then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return "HTTP " + r.status; });
+    });
+    step("NASA CMR (SMAP/IMERG dates)", function () {
+      return http("https://cmr.earthdata.nasa.gov/search/granules.umm_json?short_name=SPL3SMP_E&page_size=1").then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return "HTTP " + r.status; });
+    });
+    step("MODIS catalogue (Planetary Computer STAC)", function () {
+      var body = { collections: ["modis-13Q1-061"], intersects: { type: "Point", coordinates: [74.1, 31.45] }, limit: 1, sortby: [{ field: "datetime", direction: "desc" }] };
+      return http("https://planetarycomputer.microsoft.com/api/stac/v1/search", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+        .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }).then(function (j) { stacItem = j.features[0]; return "found " + stacItem.id; });
+    });
+    step("MODIS read token", function () {
+      return http("https://planetarycomputer.microsoft.com/api/sas/v1/token/modiseuwest/modis-061-cogs").then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }).then(function (j) { token = j.token; return "token received (not shown)"; });
+    });
+    step("MODIS file read (range request)", function () {
+      if (!stacItem || !token) throw new Error("skipped: an earlier MODIS check failed");
+      return http(stacItem.assets["250m_16_days_NDVI"].href + "?" + token, { headers: { Range: "bytes=0-1023" } }).then(function (r) { if (r.status !== 206 && r.status !== 200) throw new Error("HTTP " + r.status); return "HTTP " + r.status; });
+    });
+    step("Soil file read (ISRIC, range request)", function () {
+      return http("https://files.isric.org/soilgrids/latest/data/phh2o/phh2o_0-5cm_mean/tileSG-008-020/tileSG-008-020_3-3.tif", { headers: { Range: "bytes=0-1023" } }).then(function (r) { if (r.status !== 206 && r.status !== 200) throw new Error("HTTP " + r.status); return "HTTP " + r.status; });
+    });
+    step("End to end: soil for Kansas (expect pH 6.8)", function () {
+      return window.DirectData.soil(38.5, -98.0).then(function (j) { if (!j.soil.ph) throw new Error("no soil returned: " + (j.gaps || []).join(" ")); return "pH " + j.soil.ph.mean + ", clay " + j.soil.clay.mean + "%" + (j.provenance.served_from_cache ? " (from this browser's cache)" : ""); });
+    });
+    step("End to end: MODIS greenness, Lahore farmland, 6 months", function () {
+      return window.DirectData.ndvi(31.45, 74.10, 6).then(function (j) { var n = j.ndvi; if (!n.valid_count) throw new Error("no usable composites out of " + n.total_count); return n.valid_count + " of " + n.total_count + " composites usable; newest " + n.provenance.data_through; });
+    });
+    step("Optional backend (agrishift-api)", function () {
+      var u = (window.AGRISHIFT || {}).backendUrl; if (!u) return "not configured (fine: the site does not need it)";
+      return http(u.replace(/\/+$/, "") + "/api/health", null, 70000).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return "HTTP " + r.status + " (a sleeping free server can take about a minute)"; });
+    });
+    chain.then(function () {
+      var bad = rows.filter(function (r) { return r[1] !== "OK"; });
+      document.getElementById("report").value = "Rotation Explorer diagnostics " + new Date().toISOString() + "\n" + (bad.length ? bad.length + " check(s) FAILED" : "all checks passed") + "\n\n" + rows.map(function (r) { return r[1] + "  " + r[0] + "  " + r[2] + "  " + r[3]; }).join("\n");
+    });
+  }
+  document.getElementById("run").addEventListener("click", run);
+})();
+</script>
+</body>
+</html>

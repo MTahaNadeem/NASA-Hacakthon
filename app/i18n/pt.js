@@ -256,5 +256,8 @@ I18N.add("pt", {
 "nasa.tech":"Detalhes técnicos (em inglês)",
 "nasa.cache":"reaproveitado do nosso cache",
 "nasa.s.soilgrids":"Solo (ISRIC SoilGrids, não é da NASA)",
-"nasa.k.third_party":"Não é da NASA"
+"nasa.k.third_party":"Não é da NASA",
+"cov.loading":"Os dados de solo e de satélite ainda estão carregando. Na primeira vez pode levar até um minuto; os resultados acima se atualizam sozinhos.",
+"cov.failed":"Não foi possível carregar: {what}. Os resultados acima usam apenas os dados que carregaram. Abra a página de diagnóstico para ver o motivo.",
+"cov.smapimerg":"SMAP e IMERG continuam desligados: seus dados exigem um login da NASA que um site público não pode guardar com segurança."
 });

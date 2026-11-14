@@ -256,5 +256,8 @@ I18N.add("zh", {
 "nasa.tech":"技术细节（英文）",
 "nasa.cache":"来自我们的缓存",
 "nasa.s.soilgrids":"土壤（ISRIC SoilGrids，非 NASA）",
-"nasa.k.third_party":"非 NASA"
+"nasa.k.third_party":"非 NASA",
+"cov.loading":"土壤和卫星数据仍在加载。首次可能需要一分钟；上方结果会自动更新。",
+"cov.failed":"无法加载：{what}。上方结果只使用已加载的数据。请打开诊断页面查看原因。",
+"cov.smapimerg":"SMAP 和 IMERG 保持关闭：它们的数据需要 NASA 登录，而公开网站无法安全保存该登录。"
 });
