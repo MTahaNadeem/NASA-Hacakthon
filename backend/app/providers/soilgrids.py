@@ -158,6 +158,6 @@ def fetch(lat, lon, reader=None, probe=None):
     col, row, km = found
     jobs = [(p, d, s) for p in PROPS for d, _ in DEPTHS for s, _ in STATS]
     sname = dict(STATS)
-    with cf.ThreadPoolExecutor(max_workers=16) as ex:
+    with cf.ThreadPoolExecutor(max_workers=config.SOIL_WORKERS) as ex:
         vals = list(ex.map(lambda j: reader(j[0], j[1], sname[j[2]], col, row), jobs))
     return {"soil": combine(dict(zip(jobs, vals))), "distance_km": km, "pixel": [col, row], "reason": None}

@@ -153,7 +153,7 @@ def series(lat, lon, items, cache, max_workers=16):
             return dict(item_id=item["id"], sensor=item["sensor"], start=item["start"], end=item["end"],
                         ndvi=None, reliability=None, reason="read failed: %s" % e.__class__.__name__)
 
-    with cf.ThreadPoolExecutor(max_workers=max_workers) as ex:
+    with cf.ThreadPoolExecutor(max_workers=max_workers or config.MODIS_WORKERS) as ex:
         out = list(ex.map(one, items))
     out.sort(key=lambda r: r["start"])
     return out

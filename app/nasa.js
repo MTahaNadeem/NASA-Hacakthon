@@ -18,15 +18,16 @@
     }).then(function (j) { if (timer) clearTimeout(timer); return j; }, function (e) { if (timer) clearTimeout(timer); throw e; });
   }
   function q(lat, lon) { return "?lat=" + encodeURIComponent(lat.toFixed(4)) + "&lon=" + encodeURIComponent(lon.toFixed(4)); }
-  // Soil and satellite data come from two routes that are raced, because neither is fast everywhere:
-  //  * the optional backend: a small JSON request, usually 0.5-15 s (shared cache, fast server link), but a free host can be asleep for about a minute;
-  //  * the browser reading the files itself: about 5-10 s on a fast connection but 90+ s on a slow one (about 95 small requests for soil), and
-  //    impossible in Firefox (it sends a CORS check for range requests that ISRIC's server does not answer) or on networks that block the file hosts.
-  // The backend is asked at once. The browser route starts 2.5 s later if the backend has not answered, or immediately if the backend fails.
-  // The first success wins. With no backend only the browser route exists; with no browser route only the backend. Errors are never hidden.
-  var directBroken = false, RACE_DELAY_MS = 2500;
+  // Soil and satellite data come from two routes, raced:
+  //  * the browser reading the files itself: no server involved, about 5-10 s (soil) and 20 s (MODIS) on a fast connection, but 90+ s on a slow one
+  //    (about 95 small requests for soil), and impossible in Firefox (it sends a CORS check for range requests that ISRIC's server does not answer)
+  //    or on networks that block the file hosts;
+  //  * the optional backend: a small JSON request, but it runs on a free 512 MB server where every soil or MODIS read costs 100-160 MB of memory.
+  // The browser goes first. The backend is asked only if the browser has not finished after a delay (slow connection) or has failed (Firefox,
+  // blocked network). First success wins. With no backend only the browser route exists; with no browser route only the backend. Errors are never hidden.
+  var directBroken = false, DELAY_SOIL_MS = 12000, DELAY_NDVI_MS = 40000;
   function direct() { return !directBroken && root.DirectData && root.DirectData.available() ? root.DirectData : null; }
-  function race(run, path, ms) {
+  function race(run, path, ms, delayMs) {
     var d = direct(), hasBackend = !!backendUrl();
     if (!hasBackend) return d ? run(d) : Promise.reject(new Error("this browser cannot read the data files and no backend is configured"));
     if (!d) return get(path, ms);
@@ -34,9 +35,9 @@
       var done = false, started = false, errs = [], timer = null;
       function ok(v) { if (!done) { done = true; clearTimeout(timer); resolve(v); } }
       function bad(e) { errs.push(e); if (errs.length === 2 && !done) { done = true; reject(errs[0]); } }
-      function startDirect() { if (started || done) return; started = true; clearTimeout(timer); run(d).then(ok, function (e) { directBroken = true; bad(e); }); }
-      get(path, ms).then(ok, function (e) { bad(e); startDirect(); });
-      timer = setTimeout(startDirect, RACE_DELAY_MS);
+      function startBackend() { if (started || done) return; started = true; clearTimeout(timer); get(path, ms).then(ok, bad); }
+      run(d).then(ok, function (e) { directBroken = true; bad(e); startBackend(); });
+      timer = setTimeout(startBackend, delayMs);
     });
   }
   // Recent SMAP soil moisture and IMERG rain: needs a NASA login, which only the optional backend holds, and takes 10-45 s, so the
@@ -61,8 +62,8 @@
     if (mode() !== "backend") return root.DirectData.status();
     return get("/api/location" + q(lat, lon), 90000).catch(function (e) { if (!(root.DirectData && root.DirectData.available())) throw e; return root.DirectData.status(); });
   }
-  function fetchNdvi(lat, lon) { return race(function (d) { return d.ndvi(lat, lon, 36); }, "/api/ndvi" + q(lat, lon) + "&months=36", 150000); }
-  function fetchSoil(lat, lon) { return race(function (d) { return d.soil(lat, lon); }, "/api/soil" + q(lat, lon), 120000); }
+  function fetchNdvi(lat, lon) { return race(function (d) { return d.ndvi(lat, lon, 36); }, "/api/ndvi" + q(lat, lon) + "&months=36", 150000, DELAY_NDVI_MS); }
+  function fetchSoil(lat, lon) { return race(function (d) { return d.soil(lat, lon); }, "/api/soil" + q(lat, lon), 120000, DELAY_SOIL_MS); }
   // Free hosts sleep when idle; touching /api/health as soon as the page opens starts the wake-up while the visitor is still choosing a place.
   function wake() { if (mode() === "backend") get('/api/health', 70000).catch(function () {}); }
 
@@ -161,6 +162,6 @@
     return out.join("");
   }
 
-  var api = { _poll: function (ms) { POLL_MS = ms; }, fetchRecent: fetchRecent, _reset: function () { directBroken = false; }, _delay: function (ms) { RACE_DELAY_MS = ms; }, wake: wake, mode: mode, enabled: enabled, fetchLocation: fetchLocation, fetchNdvi: fetchNdvi, fetchSoil: fetchSoil, model: model, html: html, spark: spark };
+  var api = { _poll: function (ms) { POLL_MS = ms; }, fetchRecent: fetchRecent, _reset: function () { directBroken = false; }, _delay: function (ms) { DELAY_SOIL_MS = ms; DELAY_NDVI_MS = ms; }, wake: wake, mode: mode, enabled: enabled, fetchLocation: fetchLocation, fetchNdvi: fetchNdvi, fetchSoil: fetchSoil, model: model, html: html, spark: spark };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.NasaPanel = api;
 })(typeof window !== "undefined" ? window : globalThis);

@@ -271,3 +271,24 @@ def test_at_most_two_places_are_read_from_nasa_at_once(api, monkeypatch):
         c.get("/api/recent?lat=%d.05&lon=%d.05" % (40 + i, -90 - i))
     time.sleep(0.4); gate.set(); time.sleep(0.8)
     assert peak[0] <= 4          # 2 places x 2 products; without the cap five places would give 10
+
+
+def test_soil_and_modis_jobs_share_the_same_ceiling_so_memory_stays_bounded(api, monkeypatch):
+    """Four soil reads and two MODIS reads asked for at once: never more than HEAVY_JOBS at the same moment."""
+    import threading, time
+    from app.providers import soilgrids as sg, modis
+    c, _ = api
+    active, peak, lock, gate = [0], [0], threading.Lock(), threading.Event()
+    def enter():
+        with lock:
+            active[0] += 1; peak[0] = max(peak[0], active[0])
+        gate.wait(5)
+        with lock:
+            active[0] -= 1
+    monkeypatch.setattr(sg, "fetch", lambda lat, lon: (enter(), {"soil": {"ph": {"q05": 6, "mean": 7, "q95": 8}}, "distance_km": 0, "pixel": [1, 2], "reason": None})[1])
+    monkeypatch.setattr(modis, "search", lambda lat, lon, months, client=None: modis.parse_items(__import__("conftest").load("stac_modis13q1_lahore.json")))
+    monkeypatch.setattr(modis, "series", lambda lat, lon, items, cache, max_workers=None: (enter(), [])[1])
+    threads = [threading.Thread(target=lambda i=i: c.get("/api/soil?lat=%d.1&lon=%d.1" % (30 + i, 60 + i))) for i in range(4)]
+    threads += [threading.Thread(target=lambda i=i: c.get("/api/ndvi?lat=%d.1&lon=%d.1" % (10 + i, 20 + i))) for i in range(2)]
+    [t.start() for t in threads]; time.sleep(0.5); gate.set(); [t.join(10) for t in threads]
+    assert 1 <= peak[0] <= service.HEAVY_JOBS

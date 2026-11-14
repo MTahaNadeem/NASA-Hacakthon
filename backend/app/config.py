@@ -2,6 +2,10 @@
 secret ever has to live in the repository or in the frontend."""
 import os
 
+# GDAL (used by rasterio) sizes its block cache from the HOST's RAM, not the container's; on a 512 MB free instance that can run it out of memory.
+# Must be set before rasterio is imported.
+os.environ.setdefault("GDAL_CACHEMAX", "32")
+
 
 def _int(name, default):
     try:
@@ -25,6 +29,8 @@ TTL_CMR = _int("TTL_CMR", 3 * 3600)
 TTL_SOIL = _int("TTL_SOIL", 90 * 86400)       # soil maps do not change
 
 HTTP_TIMEOUT = _int("HTTP_TIMEOUT", 45)
+MODIS_WORKERS = _int("MODIS_WORKERS", 4)      # parallel file reads; each holds GDAL buffers, and the free server has 512 MB
+SOIL_WORKERS = _int("SOIL_WORKERS", 8)
 RATE_LIMIT_PER_MIN = _int("RATE_LIMIT_PER_MIN", 60)
 
 POWER_START_YEAR = _int("POWER_START_YEAR", 2005)

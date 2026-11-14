@@ -79,41 +79,36 @@ for (const [why, re] of [["an auth header", /["']Authorization["']/i], ["a beare
   assert.ok(!re.test(src), "the client must not contain " + why);
 assert.ok(/\bAuthorization\b|Bearer /.test("fetch(u,{headers:{'Authorization':'Bearer x'}})"), "the pattern list above really matches what it should catch");
 
-// 9. soil / satellite: backend and browser are raced; the first success wins; failures are never hidden
+// 9. soil / satellite: the browser goes first; the backend only after a delay or a failure; first success wins; failures are never hidden
 (async () => {
-  const wait = ms => new Promise(r => setTimeout(r, ms)); P._delay(60);
-  const calls = []; global.AGRISHIFT = { backendUrl: "http://backend.example" };
-  const direct = (impl) => ({ available: () => true, soil: async () => (calls.push("direct.soil"), impl()), ndvi: async () => (calls.push("direct.ndvi"), impl()), status: async () => ({ from: "browser-status" }) });
+  const wait = ms => new Promise(r => setTimeout(r, ms)); P._delay(80);
+  let backendCalls = 0; global.AGRISHIFT = { backendUrl: "http://backend.example" };
+  const direct = (impl) => ({ available: () => true, soil: async () => impl(), ndvi: async () => impl(), status: async () => ({ from: "browser-status" }) });
   const directOk = (delay = 0) => direct(async () => { await wait(delay); return { from: "browser" }; });
   const directBad = () => direct(async () => { throw new Error("NetworkError"); });
-  const backend = (impl) => { global.fetch = async () => impl(); };
+  const backend = (impl) => { global.fetch = async () => { backendCalls++; return impl(); }; };
   const backendFast = () => backend(async () => ({ ok: true, json: async () => ({ from: "backend" }) }));
-  const backendSlow = (ms) => backend(async () => { await wait(ms); return { ok: true, json: async () => ({ from: "backend-late" }) }; });
   const backendDown = () => backend(async () => { throw new Error("backend asleep"); });
-  const reset = () => { P._reset(); calls.length = 0; };
+  const reset = () => { P._reset(); backendCalls = 0; };
 
-  // a) backend answers quickly: it wins and the browser route is never started (no wasted downloads)
+  // a) browser finishes before the delay: it wins and the backend is never asked (the small free server is spared)
   reset(); global.DirectData = directOk(); backendFast();
-  assert.strictEqual((await P.fetchSoil(1, 2)).from, "backend"); await wait(120); assert.deepStrictEqual(calls, [], "browser route not started when the backend answered in time");
-  // b) backend asleep / slow: the browser route starts after the delay and wins
-  reset(); global.DirectData = directOk(); backendSlow(600);
-  assert.strictEqual((await P.fetchSoil(1, 2)).from, "browser"); assert.deepStrictEqual(calls, ["direct.soil"]);
-  // c) backend fails at once: the browser route starts immediately, not after the delay
-  reset(); P._delay(5000); global.DirectData = directOk(); backendDown(); const t0 = Date.now();
-  assert.strictEqual((await P.fetchNdvi(1, 2)).from, "browser"); assert.ok(Date.now() - t0 < 1000, "did not wait for the race delay"); P._delay(60);
-  // d) slow connection: browser route is slow, backend answers meanwhile and wins
-  reset(); global.DirectData = directOk(400); backendSlow(150);
-  assert.strictEqual((await P.fetchSoil(1, 2)).from, "backend-late");
-  // e) Firefox: the browser route fails, the backend (slow) still answers; the browser route is remembered as broken and not retried
-  reset(); global.DirectData = directBad(); backendSlow(200);
-  assert.strictEqual((await P.fetchSoil(1, 2)).from, "backend-late"); assert.deepStrictEqual(calls, ["direct.soil"]);
-  backendFast(); assert.strictEqual((await P.fetchNdvi(1, 2)).from, "backend"); await wait(120); assert.deepStrictEqual(calls, ["direct.soil"], "browser route not retried after failing");
-  // f) both fail: the error is reported
-  reset(); global.DirectData = directBad(); backendDown(); await assert.rejects(() => P.fetchSoil(1, 2), /backend asleep|NetworkError/);
-  // g) no backend configured: browser only; its own error is reported
+  assert.strictEqual((await P.fetchSoil(1, 2)).from, "browser"); await wait(150); assert.strictEqual(backendCalls, 0);
+  // b) slow connection: the browser is still busy after the delay, so the backend is asked and answers first
+  reset(); global.DirectData = directOk(600); backendFast();
+  assert.strictEqual((await P.fetchSoil(1, 2)).from, "backend"); assert.strictEqual(backendCalls, 1);
+  // c) browser cannot read the files (Firefox, blocked network): the backend is asked AT ONCE, and the browser route is not retried afterwards
+  reset(); P._delay(5000); global.DirectData = directBad(); backendFast(); const t0 = Date.now();
+  assert.strictEqual((await P.fetchNdvi(1, 2)).from, "backend"); assert.ok(Date.now() - t0 < 1000, "did not wait for the delay"); P._delay(80);
+  const before = backendCalls; assert.strictEqual((await P.fetchSoil(1, 2)).from, "backend"); assert.strictEqual(backendCalls, before + 1, "goes straight to the backend; no wasted browser attempt");
+  // d) browser fails and the backend is down: the error is reported
+  reset(); global.DirectData = directBad(); backendDown(); await assert.rejects(() => P.fetchSoil(1, 2), /NetworkError|backend asleep/);
+  // e) slow browser AND a failing backend: the browser's late answer still wins
+  reset(); global.DirectData = directOk(300); backendDown(); assert.strictEqual((await P.fetchSoil(1, 2)).from, "browser");
+  // f) no backend configured: browser only, its own error is reported
   reset(); delete global.AGRISHIFT; global.DirectData = directOk(); assert.strictEqual((await P.fetchSoil(1, 2)).from, "browser");
   reset(); global.DirectData = directBad(); await assert.rejects(() => P.fetchSoil(1, 2), /NetworkError/);
-  // h) no browser engine: backend only
+  // g) no browser engine: backend only
   reset(); global.AGRISHIFT = { backendUrl: "http://backend.example" }; delete global.DirectData; backendFast(); assert.strictEqual((await P.fetchSoil(1, 2)).from, "backend");
   // i) weather indicators: backend, falling back to the satellite freshness when it is asleep
   reset(); global.DirectData = directOk(); backendDown(); assert.strictEqual((await P.fetchLocation(1, 2)).from, "browser-status"); backendFast(); assert.strictEqual((await P.fetchLocation(1, 2)).from, "backend");
@@ -132,6 +127,6 @@ assert.ok(/\bAuthorization\b|Bearer /.test("fetch(u,{headers:{'Authorization':'B
   await P.fetchRecent(1, 2, j => seen.push(Object.keys(j).filter(k => k === "imerg" || k === "smap").join("+")));
   assert.deepStrictEqual(seen, ["imerg"], "the page is told about the rain as soon as it exists");
   P._poll(3000);
-  delete global.AGRISHIFT; delete global.fetch; delete global.DirectData; P._reset(); P._delay(2500);
+  delete global.AGRISHIFT; delete global.fetch; delete global.DirectData; P._reset(); P._delay(12000);
   console.log("nasa panel tests passed");
 })();

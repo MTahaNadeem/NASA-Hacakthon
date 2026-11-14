@@ -15,6 +15,10 @@ services:
         value: 3.12.7
       - key: ALLOWED_ORIGINS          # your GitHub Pages address (origin only, no path). Change it if your username differs.
         value: https://mtahanadeem.github.io
+      - key: MALLOC_ARENA_MAX         # glibc gives every thread its own memory arena; 2 cut peak memory by ~20% in tests (free instances have 512 MB)
+        value: "2"
+      - key: MODIS_WORKERS
+        value: "4"
       - key: CACHE_DB                 # free instances have no persistent disk; the cache refills after a restart
         value: /tmp/cache.sqlite3
       # PROTOTYPE ONLY (decided by the project owner, who accepts that it is public until Monday): the NASA Earthdata token is committed here

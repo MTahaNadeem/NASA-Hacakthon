@@ -126,7 +126,7 @@ def ndvi(lat, lon, cache, months=12, searcher=None, reader=None):
     items, fetched, stale, hit = cache.fetch("modis:search:%s:%d" % (cell, months), config.TTL_MODIS_SEARCH,
                                              lambda: (searcher or modis.search)(lat, lon, months))
     if reader is None:
-        rows = modis.series(lat, lon, items, cache)
+        rows = _heavy(lambda: modis.series(lat, lon, items, cache))
     else:
         rows = reader(lat, lon, items)
     good = [r for r in rows if r["ndvi"] is not None]
@@ -173,7 +173,7 @@ def soil(lat, lon, cache, fetcher=None):
     px = soilgrids.pixel(lat, lon)
     if px is None:
         raise ValueError("point is outside the SoilGrids map")
-    rec, fetched, stale, hit = cache.fetch("soil:v1:%d:%d" % px, config.TTL_SOIL, lambda: (fetcher or soilgrids.fetch)(lat, lon))
+    rec, fetched, stale, hit = cache.fetch("soil:v1:%d:%d" % px, config.TTL_SOIL, lambda: _heavy(lambda: (fetcher or soilgrids.fetch)(lat, lon)))
     gaps = []
     if rec.get("reason"):
         gaps.append(rec["reason"])
@@ -194,13 +194,24 @@ def soil(lat, lon, cache, fetcher=None):
     }
 
 
+# The free server has 512 MB. Measured: idle 87 MB, one soil read +105 MB, one MODIS read +160 MB, so only this many heavy jobs may run at the
+# same time; further requests wait their turn instead of pushing the process out of memory (which dropped connections and lost NASA jobs).
+HEAVY_JOBS = 2
+_heavy_slots = threading.BoundedSemaphore(HEAVY_JOBS)
+
+
+def _heavy(fn):
+    with _heavy_slots:
+        return fn()
+
+
 RECENT_DAYS = 30
 RECENT_TTL = 6 * 3600
 _recent_jobs = {}
 _recent_lock = threading.Lock()
 # NASA's job queue slows down for everyone when several jobs run at once (measured: ~30 s alone, 110 s+ with overlapping runs),
 # so at most this many places are read at the same time; others wait their turn and stay 'running'.
-_recent_slots = threading.BoundedSemaphore(2)
+_recent_slots = None   # replaced by the global heavy-job ceiling below
 
 
 def summarise_imerg(rows):
@@ -302,8 +313,7 @@ def recent(lat, lon, cache, fetcher=None, today=None, background=True):
                 with _recent_lock:
                     if key in _recent_jobs:
                         _recent_jobs[key].setdefault("partial", {})[name] = section
-            with _recent_slots:
-                res = _recent_compute(clat, clon, fetcher, today, on_part=part)
+            res = _heavy(lambda: _recent_compute(clat, clon, fetcher, today, on_part=part))
             cache.put(key, res, RECENT_TTL)
             with _recent_lock:
                 _recent_jobs.pop(key, None)

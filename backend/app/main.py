@@ -49,9 +49,16 @@ def _upstream(fn):
         raise HTTPException(502, "NASA data source unavailable: %s" % e)
 
 
+_STARTED = __import__("time").time()
+
+
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "earthdata_server_token_configured": bool(config.EARTHDATA_TOKEN)}
+    import resource
+    import time
+    # uptime resets when the server restarts (for instance when a small free host runs out of memory); peak memory shows how close it got
+    return {"status": "ok", "earthdata_server_token_configured": bool(config.EARTHDATA_TOKEN),
+            "uptime_s": int(time.time() - _STARTED), "peak_memory_mb": round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)}
 
 
 @app.get("/api/sources")
