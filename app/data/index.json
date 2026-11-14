@@ -4,7 +4,7 @@
   "name": "Faisalabad, Punjab, Pakistan",
   "lat": 31.42,
   "lon": 73.08,
-  "hero": true,
+  "hero": false,
   "current_rotation": "wheat_fallow",
   "rotation_ids": [
    "wheat_fallow",
