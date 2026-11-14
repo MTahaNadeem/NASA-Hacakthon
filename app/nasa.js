@@ -18,11 +18,16 @@
     }).then(function (j) { if (timer) clearTimeout(timer); return j; }, function (e) { if (timer) clearTimeout(timer); throw e; });
   }
   function q(lat, lon) { return "?lat=" + encodeURIComponent(lat.toFixed(4)) + "&lon=" + encodeURIComponent(lon.toFixed(4)); }
-  function fetchLocation(lat, lon) { return mode() === "backend" ? get("/api/location" + q(lat, lon)) : root.DirectData.status(); }
-  function fetchNdvi(lat, lon) { return mode() === "backend" ? get("/api/ndvi" + q(lat, lon) + "&months=36", 150000) : root.DirectData.ndvi(lat, lon, 36); }
+  // If the backend is asleep, down or slow, fall back to reading the files in the browser, so a sleeping free server never costs the farmer the data.
+  function direct() { return root.DirectData && root.DirectData.available() ? root.DirectData : null; }
+  function viaBackend(path, ms, fallback) {
+    return get(path, ms).catch(function (e) { var d = direct(); if (!d) throw e; return fallback(d); });
+  }
+  function fetchLocation(lat, lon) { return mode() === "backend" ? viaBackend("/api/location" + q(lat, lon), 30000, function (d) { return d.status(); }) : root.DirectData.status(); }
+  function fetchNdvi(lat, lon) { return mode() === "backend" ? viaBackend("/api/ndvi" + q(lat, lon) + "&months=36", 60000, function (d) { return d.ndvi(lat, lon, 36); }) : root.DirectData.ndvi(lat, lon, 36); }
   // Free hosts sleep when idle; touching /api/health as soon as the page opens starts the wake-up while the visitor is still choosing a place.
   function wake() { if (mode() === "backend") get('/api/health', 70000).catch(function () {}); }
-  function fetchSoil(lat, lon) { return mode() === "backend" ? get("/api/soil" + q(lat, lon), 90000) : root.DirectData.soil(lat, lon); }
+  function fetchSoil(lat, lon) { return mode() === "backend" ? viaBackend("/api/soil" + q(lat, lon), 30000, function (d) { return d.soil(lat, lon); }) : root.DirectData.soil(lat, lon); }
 
   function num(x, d) { return x == null || isNaN(x) ? null : (+x).toFixed(d == null ? 0 : d); }
   function signed(x, d) { var s = num(x, d); return s == null ? null : (x > 0 ? "+" : "") + s; }
