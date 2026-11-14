@@ -190,11 +190,10 @@
       if (token !== n.token) return; n.loc = j; n.status = "ok"; renderNasa();
     }).catch(function () { if (token !== n.token) return; n.status = "err"; renderNasa(); });
     // the satellite series is slower (several seconds on first use), so it is a separate call and fills in when ready
-    if (NasaPanel.mode() === "backend") {       // extra evidence from NASA SMAP / IMERG; not used in the score, so it never delays the result
-      n.recentStatus = "loading"; renderNasa();
-      NasaPanel.fetchRecent(d.lat, d.lon, function (part) { if (token === n.token) { n.recent = part; renderNasa(); } }).then(function (j) { if (token !== n.token) return; n.recent = j; n.recentStatus = "ok"; renderNasa(); },
-        function (e) { if (token !== n.token) return; n.recentStatus = e && e.code === "not_configured" ? "off" : "err"; if (window.console) console.warn("recent SMAP/IMERG:", e); renderNasa(); });
-    }
+    // Extra evidence from NASA SMAP / IMERG (not used in the score). It is only QUEUED here and started once the soil and MODIS data have
+    // finished: the small free server does all of it, and running everything at once made the NASA job take minutes instead of ~30 s.
+    n.recentStatus = NasaPanel.mode() === "backend" ? "queued" : "idle"; n.recentArgs = { lat: d.lat, lon: d.lon, token: token };
+    clearTimeout(n.recentTimer); n.recentTimer = setTimeout(startRecent, 60000);
     NasaPanel.fetchNdvi(d.lat, d.lon).then(function (j) {
       if (token !== n.token) return; n.ndvi = j; n.ndviStatus = "ok";
       // MODIS now feeds the bare-field factor for this place, so the ranking is recomputed with it
@@ -228,10 +227,16 @@
     if (now !== state.provisional) {
       state.provisional = now;
       if (state.data) renderAll();
-      if (!now) { LB.shown = true; clearTimeout(LB.timer); renderLoadBar(true); LB.timer = setTimeout(function () { LB.shown = false; renderLoadBar(false); }, 6000); return; }
+      if (!now) { LB.shown = true; clearTimeout(LB.timer); renderLoadBar(true); LB.timer = setTimeout(function () { LB.shown = false; renderLoadBar(false); }, 6000); releaseRecent(now); return; }
       LB.shown = false; clearTimeout(LB.timer);
     }
     renderLoadBar(false);
+    releaseRecent(now);
+  }
+  // The recent SMAP/IMERG request waits until soil and MODIS are done, so the small server is not asked for everything at once.
+  function releaseRecent(loading) {
+    var n = state.nasa;
+    if (n.recentStatus === "queued" && !loading && (n.ndviStatus === "ok" || n.ndviStatus === "err")) startRecent();
   }
   // One honest line under "Data used": still loading, or what failed. Without it a blocked data source looks like "no data".
   function renderCovNote() {
@@ -246,6 +251,13 @@
     el.innerHTML = esc(msg + t("cov.smapimerg")) + (bad.length ? ' <a href="diagnose.html">diagnose.html</a>' : "");
     syncLoading();
   }
+  function startRecent() {
+    var n = state.nasa, a = n.recentArgs; clearTimeout(n.recentTimer);
+    if (n.recentStatus !== "queued" || !a || a.token !== n.token) return;
+    n.recentStatus = "loading"; renderNasa();
+    NasaPanel.fetchRecent(a.lat, a.lon, function (part) { if (a.token === n.token) { n.recent = part; renderNasa(); } }).then(function (j) { if (a.token !== n.token) return; n.recent = j; n.recentStatus = "ok"; renderNasa(); },
+      function (e) { if (a.token !== n.token) return; n.recentStatus = e && e.code === "not_configured" ? "off" : "err"; if (window.console) console.warn("recent SMAP/IMERG:", e); renderNasa(); });
+  }
   function renderNasa() {
     renderCovNote();
     var el = $("nasa"), n = state.nasa; if (!el) return;
@@ -254,7 +266,7 @@
     if (n.status === "off") { el.innerHTML = "<p class='mini'>" + esc(t("nasa.off")) + "</p>"; return; }
     var body = NasaPanel.html(NasaPanel.model(n.loc, n.ndvi, n.soil, n.recent), t, esc), notes = "";
     if (n.status === "loading" || (n.status === "ok" && n.ndviStatus === "loading")) notes += "<p class='mini'>" + esc(t("nasa.loading")) + "</p>";
-    if (n.recentStatus === "loading") notes += "<p class='mini'>" + esc(t("nasa.rec.loading")) + "</p>";
+    if (n.recentStatus === "loading" || n.recentStatus === "queued") notes += "<p class='mini'>" + esc(t("nasa.rec.loading")) + "</p>";
     if (n.recentStatus === "err") notes += "<p class='mini'>" + esc(t("nasa.rec.unavail")) + "</p>";
     if (n.status === "err" || n.ndviStatus === "err") notes += "<p class='mini nasa-err' role='alert'>" + esc(t("nasa.err")) + "</p>";
     el.innerHTML = notes + body;
