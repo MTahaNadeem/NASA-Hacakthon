@@ -1,11 +1,11 @@
 {
- "note": "Crop parameters are team-chosen rules of thumb, not measured values. Each is shown in the app's 'How was this scored?' panel. Months are 1-12. Crop calendars are Northern Hemisphere templates; for latitudes below 0 the app shifts them by 6 months. Sowing dates still vary locally.",
+ "note": "Crop calendars and water needs carry a status: sourced (taken from a document we read), partly sourced, or team estimate. All other settings (heat, frost and rain sensitivity, pH and clay ranges, soil-carbon effect) are team estimates.",
  "crops": {
   "wheat": {
    "label": "Wheat",
    "sow": 11,
    "harvest": 4,
-   "water_mm": 450,
+   "water_mm": 550,
    "heat_months": [
     3,
     4
@@ -31,12 +31,34 @@
    ],
    "soc_effect": -0.3,
    "type": "cereal",
-   "source": ""
+   "source": "",
+   "water": {
+    "range": [
+     450,
+     650
+    ],
+    "ids": [
+     "fao_iwm"
+    ],
+    "status": "sourced"
+   },
+   "calendars": {
+    "pk_punjab": {
+     "sow": 11,
+     "harvest": 4,
+     "status": "sourced",
+     "ids": [
+      "fao_giews_2002",
+      "fews_pk_2026"
+     ],
+     "note": "Planted end of October to December; harvest late March/April to mid-June. Model: November to April."
+    }
+   }
   },
   "mungbean": {
    "label": "Mungbean (summer)",
-   "sow": 5,
-   "harvest": 7,
+   "sow": 6,
+   "harvest": 9,
    "water_mm": 300,
    "heat_months": [
     5,
@@ -59,7 +81,23 @@
    ],
    "soc_effect": 0.8,
    "type": "legume",
-   "source": ""
+   "source": "",
+   "water": {
+    "range": null,
+    "ids": [],
+    "status": "team"
+   },
+   "calendars": {
+    "pk_punjab": {
+     "sow": 6,
+     "harvest": 9,
+     "status": "partial",
+     "ids": [
+      "mungbean_notes"
+     ],
+     "note": "Summer mungbean sown about mid-June to mid-July, ready in 80-110 days. From secondary sources we have not opened."
+    }
+   }
   },
   "chickpea": {
    "label": "Chickpea",
@@ -90,7 +128,23 @@
    ],
    "soc_effect": 0.8,
    "type": "legume",
-   "source": ""
+   "source": "",
+   "water": {
+    "range": null,
+    "ids": [],
+    "status": "team"
+   },
+   "calendars": {
+    "pk_punjab": {
+     "sow": 10,
+     "harvest": 3,
+     "status": "partial",
+     "ids": [
+      "chickpea_notes"
+     ],
+     "note": "Usually sown mid-October to mid-November, harvested March to April. From secondary sources we have not opened."
+    }
+   }
   },
   "mustard": {
    "label": "Mustard / canola",
@@ -121,13 +175,29 @@
    ],
    "soc_effect": -0.1,
    "type": "oilseed",
-   "source": ""
+   "source": "",
+   "water": {
+    "range": null,
+    "ids": [],
+    "status": "team"
+   },
+   "calendars": {
+    "pk_punjab": {
+     "sow": 10,
+     "harvest": 3,
+     "status": "partial",
+     "ids": [
+      "agripunjab_rapeseed"
+     ],
+     "note": "Official table: sown 1-15 October (Faisalabad mustard from 21 September); TM canola is a 130-day variety, so harvest around February to March."
+    }
+   }
   },
   "corn": {
    "label": "Corn",
    "sow": 5,
    "harvest": 10,
-   "water_mm": 600,
+   "water_mm": 650,
    "heat_months": [
     7,
     8
@@ -153,13 +223,34 @@
    ],
    "soc_effect": -0.4,
    "type": "cereal",
-   "source": ""
+   "source": "",
+   "water": {
+    "range": [
+     500,
+     800
+    ],
+    "ids": [
+     "fao_iwm"
+    ],
+    "status": "sourced"
+   },
+   "calendars": {
+    "us_iowa": {
+     "sow": 5,
+     "harvest": 10,
+     "status": "sourced",
+     "ids": [
+      "usda_628"
+     ],
+     "note": "Iowa corn for grain: planting most active May 2-16 (Apr 22 to Jun 3); harvest most active Oct 7-31 (Sep 17 to Nov 17)."
+    }
+   }
   },
   "soy": {
    "label": "Soybean",
    "sow": 5,
    "harvest": 10,
-   "water_mm": 500,
+   "water_mm": 575,
    "heat_months": [
     7,
     8
@@ -185,13 +276,34 @@
    ],
    "soc_effect": 0.4,
    "type": "legume",
-   "source": ""
+   "source": "",
+   "water": {
+    "range": [
+     450,
+     700
+    ],
+    "ids": [
+     "fao_iwm"
+    ],
+    "status": "sourced"
+   },
+   "calendars": {
+    "us_iowa": {
+     "sow": 5,
+     "harvest": 10,
+     "status": "sourced",
+     "ids": [
+      "usda_628"
+     ],
+     "note": "Iowa soybeans: planting most active May 14 to Jun 2 (May 4 to Jun 17); harvest most active Oct 1-15 (Sep 21 to Oct 27)."
+    }
+   }
   },
   "oats": {
    "label": "Oats",
    "sow": 4,
    "harvest": 7,
-   "water_mm": 350,
+   "water_mm": 550,
    "heat_months": [
     6,
     7
@@ -215,13 +327,34 @@
    ],
    "soc_effect": 0.1,
    "type": "cereal",
-   "source": ""
+   "source": "",
+   "water": {
+    "range": [
+     450,
+     650
+    ],
+    "ids": [
+     "fao_iwm"
+    ],
+    "status": "sourced"
+   },
+   "calendars": {
+    "us_iowa": {
+     "sow": 4,
+     "harvest": 7,
+     "status": "sourced",
+     "ids": [
+      "usda_628"
+     ],
+     "note": "Iowa spring oats: planting most active Apr 4-23 (Mar 24 to May 17); harvest most active Jul 15-29 (Jul 3 to Aug 9)."
+    }
+   }
   },
   "bean": {
    "label": "Common bean",
    "sow": 6,
    "harvest": 9,
-   "water_mm": 300,
+   "water_mm": 400,
    "heat_months": [
     7,
     8
@@ -247,13 +380,23 @@
    ],
    "soc_effect": 0.7,
    "type": "legume",
-   "source": ""
+   "source": "",
+   "water": {
+    "range": [
+     300,
+     500
+    ],
+    "ids": [
+     "fao_iwm"
+    ],
+    "status": "sourced"
+   }
   },
   "groundnut": {
    "label": "Groundnut",
    "sow": 6,
    "harvest": 10,
-   "water_mm": 450,
+   "water_mm": 600,
    "heat_months": [
     7,
     8
@@ -279,7 +422,171 @@
    ],
    "soc_effect": 0.7,
    "type": "legume",
-   "source": ""
+   "source": "",
+   "water": {
+    "range": [
+     500,
+     700
+    ],
+    "ids": [
+     "fao_iwm"
+    ],
+    "status": "sourced"
+   }
+  },
+  "rice": {
+   "label": "Rice",
+   "sow": 6,
+   "harvest": 10,
+   "water_mm": 575,
+   "heat_months": [
+    8,
+    9
+   ],
+   "heat_sens": 0.5,
+   "frost_months": [],
+   "frost_sens": 0,
+   "rain_months": [
+    9,
+    10
+   ],
+   "rain_sens": 0.4,
+   "ph": [
+    5.5,
+    8.0
+   ],
+   "clay": [
+    20,
+    60
+   ],
+   "soc_effect": 0.0,
+   "type": "cereal",
+   "source": "",
+   "water": {
+    "range": [
+     450,
+     700
+    ],
+    "ids": [
+     "fao_iwm"
+    ],
+    "status": "sourced"
+   },
+   "calendars": {
+    "pk_punjab": {
+     "sow": 6,
+     "harvest": 10,
+     "status": "partial",
+     "ids": [
+      "fews_pk_2026"
+     ],
+     "note": "Kharif crops are planted April to July and harvested September to November. The exact months inside that window are the team's choice."
+    }
+   }
+  },
+  "cotton": {
+   "label": "Cotton",
+   "sow": 5,
+   "harvest": 11,
+   "water_mm": 1000,
+   "heat_months": [
+    6
+   ],
+   "heat_sens": 0.5,
+   "frost_months": [
+    11
+   ],
+   "frost_sens": 0.3,
+   "rain_months": [
+    9,
+    10
+   ],
+   "rain_sens": 0.6,
+   "ph": [
+    6.0,
+    8.5
+   ],
+   "clay": [
+    10,
+    45
+   ],
+   "soc_effect": -0.3,
+   "type": "cash",
+   "source": "",
+   "water": {
+    "range": [
+     700,
+     1300
+    ],
+    "ids": [
+     "fao_iwm"
+    ],
+    "status": "sourced"
+   },
+   "calendars": {
+    "pk_punjab": {
+     "sow": 5,
+     "harvest": 11,
+     "status": "partial",
+     "ids": [
+      "fews_pk_2026"
+     ],
+     "note": "Kharif window: planted April to July, harvested September to November. Exact months chosen by the team."
+    }
+   }
+  },
+  "sugarcane": {
+   "label": "Sugarcane",
+   "sow": 2,
+   "harvest": 1,
+   "water_mm": 2000,
+   "heat_months": [
+    5,
+    6
+   ],
+   "heat_sens": 0.3,
+   "frost_months": [
+    12,
+    1
+   ],
+   "frost_sens": 0.5,
+   "rain_months": [
+    7,
+    8
+   ],
+   "rain_sens": 0.3,
+   "ph": [
+    6.0,
+    8.5
+   ],
+   "clay": [
+    15,
+    45
+   ],
+   "soc_effect": 0.0,
+   "type": "cash",
+   "source": "",
+   "water": {
+    "range": [
+     1500,
+     2500
+    ],
+    "ids": [
+     "fao_iwm"
+    ],
+    "status": "sourced"
+   },
+   "calendars": {
+    "pk_punjab": {
+     "sow": 2,
+     "harvest": 1,
+     "status": "partial",
+     "ids": [
+      "fews_pk_2026"
+     ],
+     "note": "Spring sowing February to March; harvest from October to April-May. Modelled as a 12-month crop."
+    }
+   }
   }
  },
  "rotations": {
@@ -376,6 +683,32 @@
      "groundnut"
     ]
    ]
+  },
+  "rice_wheat": {
+   "label": "Rice + wheat",
+   "cycle": [
+    [
+     "rice",
+     "wheat"
+    ]
+   ]
+  },
+  "cotton_wheat": {
+   "label": "Cotton + wheat",
+   "cycle": [
+    [
+     "cotton",
+     "wheat"
+    ]
+   ]
+  },
+  "sugarcane_only": {
+   "label": "Sugarcane every year",
+   "cycle": [
+    [
+     "sugarcane"
+    ]
+   ]
   }
  },
  "bare_ndvi_threshold": 0.3,
@@ -387,7 +720,10 @@
     "wheat_fallow",
     "wheat_mungbean",
     "wheat_chickpea",
-    "wheat_mustard"
+    "wheat_mustard",
+    "rice_wheat",
+    "cotton_wheat",
+    "sugarcane_only"
    ]
   },
   "temperate_corn": {
@@ -408,6 +744,70 @@
     "corn_groundnut",
     "corn_soy"
    ]
+  }
+ },
+ "regions": {
+  "pk_punjab": {
+   "box": [
+    27.5,
+    69.5,
+    34.2,
+    75.4
+   ],
+   "note": "Pakistan, Punjab (approximate box; Islamabad and Rawalpindi are included)"
+  },
+  "us_iowa": {
+   "box": [
+    40.3,
+    -96.7,
+    43.6,
+    -90.1
+   ],
+   "note": "Iowa, USA"
+  }
+ },
+ "sources": {
+  "fao_giews_2002": {
+   "title": "FAO/GIEWS Foodcrops & Shortages 02/02: Pakistan (1 February 2002)",
+   "url": "https://www.fao.org/4/y6221e/pays/pak0202e.htm",
+   "read": true,
+   "quote": "The crop is planted at the end of October through November and is mostly irrigated. Harvesting is due to start from late March and continue through July."
+  },
+  "fews_pk_2026": {
+   "title": "FEWS NET, Pakistan Special Report, May 2026 (Figure 3, seasonal crop calendar, source FAO)",
+   "url": "https://fews.net/asia/pakistan/special-report/may-2026",
+   "read": true,
+   "quote": "Kharif planting typically happens between April and July, with the bulk of harvesting from September to November. Wheat is generally planted between October and December, while most harvesting occurs between April and mid-June. Sugarcane has two sowing seasons: spring (February-March) and autumn (September-October); harvesting begins in October and continues until April-May."
+  },
+  "agripunjab_rapeseed": {
+   "title": "Rapeseed & Mustard (variety table), Agriculture Department, Government of the Punjab",
+   "url": "https://agripunjab.punjab.gov.pk/node/9623",
+   "read": true,
+   "quote": "TM canola: sowing time 1 October to 15 October; short duration (130 days)."
+  },
+  "usda_628": {
+   "title": "Usual Planting and Harvesting Dates for U.S. Field Crops, Agricultural Handbook No. 628 (USDA-NASS, December 1997), Iowa tables",
+   "url": "https://esmis.nal.usda.gov/usda-esmis/files/vm40xr56k/9p290c614/j9602330g/planting-12-05-1997.html",
+   "read": true,
+   "quote": "Iowa rows: corn, soybeans, spring oats (planting and harvesting begin / most active / end dates)."
+  },
+  "fao_iwm": {
+   "title": "FAO, Irrigation Water Management: Irrigation Water Needs, Training Manual No. 3 (Brouwer & Heibloem), Chapter 2, Table 5 (seasonal crop water needs)",
+   "url": "https://www.fao.org/4/s2022e/s2022e02.htm",
+   "read": true,
+   "quote": "Wheat/barley/oats 450-650 mm; maize 500-800; rice (paddy) 450-700; soybean 450-700; cotton 700-1300; sugarcane 1500-2500; peanut 500-700; bean 300-500 (mm per growing period). The midpoint is used here. Rice figures do not include seepage losses."
+  },
+  "chickpea_notes": {
+   "title": "Production technology of pulses, lecture notes (Sindh University) and a chickpea planting-date trial at Faisalabad",
+   "url": "https://lms.su.edu.pk/lesson/147/week-11-12-production-technology-of-pulses",
+   "read": false,
+   "quote": "Seen only as a search summary: sown mid-October to mid-November in Punjab, harvest March to April."
+  },
+  "mungbean_notes": {
+   "title": "Effect of different sowing dates and cultivars on growth and productivity of mungbean",
+   "url": "https://www.researcherslinks.com/current-issues/Effect-Different-Sowing-Dates-Cultivars-on-Growth-Productivity/27/1/3980/html",
+   "read": false,
+   "quote": "Seen only as a search summary: spring sowing in March; summer sowing mid-June to mid-July; harvest maturity in 80-110 days."
   }
  }
 }

@@ -10,7 +10,10 @@
    "wheat_fallow",
    "wheat_mungbean",
    "wheat_chickpea",
-   "wheat_mustard"
+   "wheat_mustard",
+   "rice_wheat",
+   "cotton_wheat",
+   "sugarcane_only"
   ],
   "synthetic": false
  },

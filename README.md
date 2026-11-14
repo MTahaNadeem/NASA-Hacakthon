@@ -43,11 +43,34 @@ place actually contains. It is safe to re-run: finished steps are skipped, and A
 changed. Use `--skip-nasa-login` for POWER + SoilGrids only. Then commit `app/data/`.
 
 Things worth knowing:
+- **SoilGrids in the browser is best-effort**: it is slow for city locations (a city-centre point can hang for minutes) and the app falls back to weather only, with a note. The cached quick picks use the nearest farmland instead.
 - **SoilGrids has no data under built-up land or water**, and most quick picks are city centres. The pipeline therefore uses the nearest
   farmland cell within about 30 km and records the distance; the app shows it under "Data gaps". Soil is a 250 m model estimate:
   for Faisalabad it gives pH about 8.2 and organic matter around 1%, not the "below 0.5%" in newspaper reports.
 - AppEEARS returns one CSV for all places; `build_cache.py` splits it by place (`ID` column).
 - IMERG (`fetch_imerg.py`) is optional and slow (about 7,000 daily files per place); POWER is the fallback for extreme-rain days.
+
+## Crop calendars, water needs and where they come from
+
+Every crop rule shows a status in the app ("How was this scored?" -> "Crop rule sources"): **Sourced** (taken from a document we read),
+**Partly sourced** (a real window from sources, exact months chosen by the team, or only secondary sources) or **Team estimate**.
+
+| What | Source | Status |
+|---|---|---|
+| Seasonal water need per crop (mm) | FAO *Irrigation Water Management: Irrigation Water Needs*, Training Manual 3, Table 5 (the midpoint of each FAO range is used; rice excludes seepage) | Sourced for wheat, oats, maize, soybean, bean, groundnut, rice, cotton, sugarcane. Chickpea, mustard and mungbean have no FAO row: team estimate |
+| Punjab (Pakistan) wheat calendar | FAO/GIEWS *Foodcrops & Shortages 02/02* and FEWS NET Pakistan report, May 2026 (which reproduces the FAO seasonal calendar) | Sourced |
+| Punjab rice, cotton, sugarcane | FEWS NET May 2026: kharif planting April to July, harvest September to November; sugarcane spring sowing February to March | Partly sourced (exact months inside the window are ours) |
+| Punjab canola / mustard | Punjab Agriculture Department variety table: sown 1-15 October, TM canola is a 130-day variety | Partly sourced (harvest month derived) |
+| Punjab chickpea, mungbean | Pakistani agronomy notes and trials, seen as search summaries only | Partly sourced, **not opened by us** |
+| Iowa corn, soybean, oats | USDA NASS *Usual Planting and Harvesting Dates for U.S. Field Crops*, Agricultural Handbook 628 (1997), Iowa tables | Sourced |
+| Everywhere else | A general template (shifted 6 months south of 10 degrees S) | Team estimate |
+
+Heat, frost and rain sensitivity, pH and clay ranges, and the soil-carbon effect are **team estimates for every crop**. Before presenting,
+open the links and check the exact months yourselves (`app/rotations.json` has the quotes we relied on). Regions are approximate bounding
+boxes (`regions` in `rotations.json`): the Pakistan box also covers a small part of India near the border.
+
+**My rotation** (tab): pick up to 3 years of up to 2 crops each; it is added to the ranked list and kept in the share link.
+New Punjab options: rice + wheat, cotton + wheat, sugarcane.
 
 ## How the page is organised (for non-experts)
 
