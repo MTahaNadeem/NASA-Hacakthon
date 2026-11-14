@@ -259,5 +259,16 @@ I18N.add("en", {
 "nasa.k.third_party":"Not NASA",
 "cov.loading":"Soil and satellite data are still loading. This can take up to a minute the first time; the results above update by themselves.",
 "cov.failed":"Could not load: {what}. The results above use only the data that did load. Open the diagnostic page to see why.",
-"cov.smapimerg":"SMAP and IMERG stay off: their data needs a NASA login that a public website cannot safely keep."
+"cov.smapimerg":"SMAP and IMERG stay off: their data needs a NASA login that a public website cannot safely keep.",
+"load.title":"Loading the data for this place",
+"load.weather":"Weather",
+"load.soil":"Soil",
+"load.sat":"Satellite greenness",
+"load.s.done":"done",
+"load.s.run":"loading…",
+"load.s.fail":"not available",
+"load.note":"These results are preliminary and update as each part arrives. The final result appears when all three are done.",
+"load.final":"All data loaded. These are the final results.",
+"load.finalfail":"Finished. These results use only the data that could be loaded.",
+"conf.pending":"Confidence: updating…"
 });

@@ -121,6 +121,12 @@
           <div><h3 id="resname"></h3><p class="mini" id="resmeta"></p></div>
           <div class="actions"><button type="button" id="copylink" class="btn sm" data-i18n="share.copy">Copy link</button><button type="button" id="printbtn" class="btn sm" data-i18n="print.btn">Print / save PDF</button><span id="sharemsg" class="mini" role="status"></span></div>
         </div>
+        <div id="loadbar" class="loadbar" hidden>
+          <div class="lb-head"><b id="lb-title"></b><span id="lb-count" class="mini"></span></div>
+          <div class="lb-track" id="lb-track" role="progressbar" aria-valuemin="0" aria-valuemax="3" aria-valuenow="0" aria-labelledby="lb-title"><div class="lb-fill" id="lb-fill"></div></div>
+          <ol class="lb-steps" id="lb-steps"></ol>
+          <p class="mini" id="lb-note" role="status" aria-live="polite"></p>
+        </div>
         <div id="summary"></div>
         <h3 class="sub3" data-i18n="res.more">All options, best first</h3>
         <p class="mini" data-i18n="res.hint"></p>

@@ -259,5 +259,16 @@ I18N.add("es", {
 "nasa.k.third_party":"No es de la NASA",
 "cov.loading":"Los datos de suelo y satélite aún se están cargando. La primera vez puede tardar hasta un minuto; los resultados de arriba se actualizan solos.",
 "cov.failed":"No se pudo cargar: {what}. Los resultados de arriba usan solo los datos que sí se cargaron. Abra la página de diagnóstico para ver el motivo.",
-"cov.smapimerg":"SMAP e IMERG siguen desactivados: sus datos requieren un acceso a la NASA que un sitio web público no puede guardar con seguridad."
+"cov.smapimerg":"SMAP e IMERG siguen desactivados: sus datos requieren un acceso a la NASA que un sitio web público no puede guardar con seguridad.",
+"load.title":"Cargando los datos de este lugar",
+"load.weather":"Clima",
+"load.soil":"Suelo",
+"load.sat":"Verdor por satélite",
+"load.s.done":"listo",
+"load.s.run":"cargando…",
+"load.s.fail":"no disponible",
+"load.note":"Estos resultados son preliminares y se actualizan a medida que llega cada parte. El resultado final aparece cuando las tres terminan.",
+"load.final":"Todos los datos cargados. Estos son los resultados finales.",
+"load.finalfail":"Terminado. Estos resultados usan solo los datos que se pudieron cargar.",
+"conf.pending":"Confianza: actualizando…"
 });

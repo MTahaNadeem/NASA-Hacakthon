@@ -259,5 +259,16 @@ I18N.add("sw", {
 "nasa.k.third_party":"Si ya NASA",
 "cov.loading":"Data ya udongo na setilaiti bado inapakiwa. Mara ya kwanza inaweza kuchukua hadi dakika moja; matokeo hapo juu husasishwa yenyewe.",
 "cov.failed":"Haikuweza kupakiwa: {what}. Matokeo hapo juu yanatumia data iliyopakiwa pekee. Fungua ukurasa wa uchunguzi kuona sababu.",
-"cov.smapimerg":"SMAP na IMERG zinabaki zimezimwa: data yao inahitaji kuingia NASA ambako tovuti ya umma haiwezi kuhifadhi kwa usalama."
+"cov.smapimerg":"SMAP na IMERG zinabaki zimezimwa: data yao inahitaji kuingia NASA ambako tovuti ya umma haiwezi kuhifadhi kwa usalama.",
+"load.title":"Inapakia data ya mahali hapa",
+"load.weather":"Hali ya hewa",
+"load.soil":"Udongo",
+"load.sat":"Ukijani wa setilaiti",
+"load.s.done":"imekamilika",
+"load.s.run":"inapakia…",
+"load.s.fail":"haipatikani",
+"load.note":"Matokeo haya ni ya awali na husasishwa kila sehemu inapofika. Matokeo ya mwisho huonekana yote matatu yakikamilika.",
+"load.final":"Data yote imepakiwa. Haya ndiyo matokeo ya mwisho.",
+"load.finalfail":"Imekamilika. Matokeo haya yanatumia data iliyoweza kupakiwa pekee.",
+"conf.pending":"Uhakika: inasasishwa…"
 });

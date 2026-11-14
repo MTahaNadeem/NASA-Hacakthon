@@ -3,12 +3,14 @@
 (function () {
   "use strict";
   var t = I18N.t;
+  var LB = { shown: false, timer: null };
   var SRC = ["power", "soilgrids", "modis", "smap", "imerg"], SRC_NAME = { power: "NASA POWER", soilgrids: "SoilGrids", modis: "MODIS", smap: "SMAP", imerg: "GPM IMERG" };
   var TABS = ["profile", "cal", "whatif", "rules", "mine", "cmp", "nasa"];
   var state = { cfgRaw: null, cfgBase: null, cfg: null, index: [], places: [], loc: null, data: null, presetKey: null,
     sl: { water: .5, income: .5, soil: .5 }, rainDelta: 0, tempDelta: 0, irr: "u", overrides: {},
     map: null, markers: {}, customMarker: null, pin: null, loading: false, loadToken: 0, tab: "rot", status: null,
     cmp: null, cmpToken: 0, printOpen: [], urlTimer: null,
+    provisional: false,
     nasa: { status: "idle", key: null, loc: null, ndvi: null, soil: null, soilStatus: "idle", ndviStatus: "idle", token: 0 } };
   state.tab = "profile"; state.mine = [];
   var $ = function (id) { return document.getElementById(id); };
@@ -199,6 +201,33 @@
       if (state.data === d && LiveData.applySoil(d, j)) { n.soil = j; renderProfile(); renderAll(); renderNasa(); } else renderCovNote();
     }).catch(function (e) { if (token !== n.token) return; n.soilStatus = "err"; n.soilWhy = String(e && e.message || e); if (window.console) console.warn("soil failed:", e); renderCovNote(); }); }
   }
+  /* ---------- loading bar ---------- */
+  function stepState(status) { return status === "loading" ? "run" : (status === "err" || status === "none") ? "fail" : status === "ok" ? "done" : "wait"; }
+  function loadingNow() { var n = state.nasa; return !!(NasaPanel.enabled() && state.data && (n.soilStatus === "loading" || n.ndviStatus === "loading")); }
+  function renderLoadBar(justFinished) {
+    var bar = $("loadbar"), n = state.nasa; if (!bar) return;
+    var on = state.provisional, steps = [["load.weather", state.data ? "done" : "run"], ["load.soil", stepState(n.soilStatus)], ["load.sat", stepState(n.ndviStatus)]];
+    if (!on && !justFinished && !LB.shown) { bar.hidden = true; return; }
+    var done = steps.filter(function (x) { return x[1] === "done" || x[1] === "fail"; }).length, failed = steps.some(function (x) { return x[1] === "fail"; });
+    bar.hidden = false; bar.className = "loadbar" + (on ? " run" : "");
+    $("lb-title").textContent = t("load.title");
+    $("lb-count").textContent = done + " / 3";
+    $("lb-fill").style.width = Math.max(on ? 8 : 100, Math.round(done / 3 * 100)) + "%";
+    $("lb-track").setAttribute("aria-valuenow", String(done));
+    $("lb-steps").innerHTML = steps.map(function (x) { return "<li class='" + x[1] + "'>" + esc(t(x[0])) + ": " + esc(t(x[1] === "done" ? "load.s.done" : x[1] === "fail" ? "load.s.fail" : "load.s.run")) + "</li>"; }).join("");
+    $("lb-note").textContent = on ? t("load.note") : t(failed ? "load.finalfail" : "load.final");
+  }
+  // Keeps results honest: provisional while data is arriving, then ONE re-render with the final labels, and a short "final" message.
+  function syncLoading() {
+    var now = loadingNow();
+    if (now !== state.provisional) {
+      state.provisional = now;
+      if (state.data) renderAll();
+      if (!now) { LB.shown = true; clearTimeout(LB.timer); renderLoadBar(true); LB.timer = setTimeout(function () { LB.shown = false; renderLoadBar(false); }, 6000); return; }
+      LB.shown = false; clearTimeout(LB.timer);
+    }
+    renderLoadBar(false);
+  }
   // One honest line under "Data used": still loading, or what failed. Without it a blocked data source looks like "no data".
   function renderCovNote() {
     var el = $("covnote"), n = state.nasa; if (!el) return;
@@ -210,6 +239,7 @@
     if (bad.length) msg = t("cov.failed", { what: bad.join(", ") }) + " ";
     else if (n.soilStatus === "loading" || n.ndviStatus === "loading") msg = t("cov.loading") + " ";
     el.innerHTML = esc(msg + t("cov.smapimerg")) + (bad.length ? ' <a href="diagnose.html">diagnose.html</a>' : "");
+    syncLoading();
   }
   function renderNasa() {
     renderCovNote();
@@ -626,7 +656,11 @@
     return { benefits: benefits, risks: risks, flags: flags };
   }
   function li(a, cls) { return a.map(function (x) { return "<li" + (cls ? " class='" + cls + "'" : "") + ">" + esc(x) + "</li>"; }).join(""); }
-  function confPill(c) { return "<span class='pill conf conf-" + c.level + "'>" + esc(t("conf.badge", { level: t("conf." + c.level) })) + "</span>"; }
+  // While weather/soil/satellite data are still arriving the label would flip as data lands, so it says "updating" until the end.
+  function confPill(c, final) {
+    if (!final && state.provisional) return "<span class='pill conf conf-pending'>" + esc(t("conf.pending")) + "</span>";
+    return "<span class='pill conf conf-" + c.level + "'>" + esc(t("conf.badge", { level: t("conf." + c.level) })) + "</span>";
+  }
 
   // ---- plain-language layer: turn the six factor scores into short sentences a farmer can read ----
   function plain(fb) {
@@ -656,7 +690,8 @@
     $("summary").innerHTML = "<div class='summary'><p class='kick'>" + esc(t("sum.best")) + "</p><div class='sumtop'><h3><bdi>" + esc(rotLabel(top.id)) + "</bdi></h3>" + confPill(conf) + "</div>" +
       fitRow(top) + "<p>" + esc(line) + "</p>" + (nb ? "<p class='flag'>" + esc(t("sum.close", { a: rotLabel(top.id), b: rotLabel(nb.id) })) + "</p>" : "") +
       whyBlock(plain(fb)) +
-      "<p class='why'><b>" + esc(t("sum.why")) + ":</b> " + esc((conf.reasons.length ? conf.reasons.map(function (k) { return t(k); }).join("; ") : t("conf.r.none"))) + "</p>" +
+      // while data is still arriving these reasons (e.g. "no soil data") are about to change, so they are held back until the result is final
+      (state.provisional ? "" : "<p class='why'><b>" + esc(t("sum.why")) + ":</b> " + esc((conf.reasons.length ? conf.reasons.map(function (k) { return t(k); }).join("; ") : t("conf.r.none"))) + "</p>") +
       "<div class='ask'><h4>" + esc(t("sum.ask")) + "</h4><ul>" + li(ask) + "</ul></div></div>";
   }
 
@@ -767,7 +802,7 @@
   function cmpColumn(name, d, cfg, ids, current) {
     var dd = scen(d), out = rank(cfg, dd, ids), top = out.results[0], conf = Scoring.confidence(top, dd), ps = profileStats(d);
     return "<div class='cmpcol'><h3><bdi>" + esc(name) + "</bdi></h3><p class='mini'>" + esc(t("cmp.rain")) + ": " + Math.round(ps.rain) + " mm · " + esc(t("cmp.heat")) + ": " + ps.heat.toFixed(0) + "</p>" +
-      "<span class='mini'>" + esc(t("cmp.top")) + "</span><span class='big'><bdi>" + esc(rotLabel(top.id)) + "</bdi></span><div class='pills'><span class='pill cur'>" + f2(top.mean) + "</span>" + confPill(conf) + "</div>" +
+      "<span class='mini'>" + esc(t("cmp.top")) + "</span><span class='big'><bdi>" + esc(rotLabel(top.id)) + "</bdi></span><div class='pills'><span class='pill cur'>" + f2(top.mean) + "</span>" + confPill(conf, true) + "</div>" +
       "<ul class='cmplist'>" + out.results.map(function (r) {
         return "<li><span><bdi>" + esc(rotLabel(r.id)) + "</bdi>" + (r.id === current ? " <span class='mini'>(" + esc(t("card.current")) + ")</span>" : "") + "</span><b>" + f2(r.mean) + "</b><div class='bar'><div class='rng' style='left:" + r.low * 100 + "%;width:" + Math.max(1, (r.high - r.low) * 100) + "%'></div><div class='tick' style='left:" + r.mean * 100 + "%'></div></div></li>";
       }).join("") + "</ul></div>";

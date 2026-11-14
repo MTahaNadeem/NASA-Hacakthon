@@ -259,5 +259,16 @@ I18N.add("zh", {
 "nasa.k.third_party":"非 NASA",
 "cov.loading":"土壤和卫星数据仍在加载。首次可能需要一分钟；上方结果会自动更新。",
 "cov.failed":"无法加载：{what}。上方结果只使用已加载的数据。请打开诊断页面查看原因。",
-"cov.smapimerg":"SMAP 和 IMERG 保持关闭：它们的数据需要 NASA 登录，而公开网站无法安全保存该登录。"
+"cov.smapimerg":"SMAP 和 IMERG 保持关闭：它们的数据需要 NASA 登录，而公开网站无法安全保存该登录。",
+"load.title":"正在加载此地点的数据",
+"load.weather":"天气",
+"load.soil":"土壤",
+"load.sat":"卫星绿度",
+"load.s.done":"完成",
+"load.s.run":"加载中…",
+"load.s.fail":"不可用",
+"load.note":"这些结果是初步的，每部分到达时都会更新。三部分全部完成后会显示最终结果。",
+"load.final":"所有数据已加载。这些是最终结果。",
+"load.finalfail":"已完成。这些结果只使用了能够加载的数据。",
+"conf.pending":"可信度：更新中…"
 });

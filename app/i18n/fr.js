@@ -259,5 +259,16 @@ I18N.add("fr", {
 "nasa.k.third_party":"Pas de la NASA",
 "cov.loading":"Les données de sol et de satellite sont encore en cours de chargement. La première fois, cela peut prendre jusqu'à une minute ; les résultats ci-dessus se mettent à jour tout seuls.",
 "cov.failed":"Chargement impossible : {what}. Les résultats ci-dessus n'utilisent que les données qui ont été chargées. Ouvrez la page de diagnostic pour voir pourquoi.",
-"cov.smapimerg":"SMAP et IMERG restent désactivés : leurs données exigent une connexion NASA qu'un site web public ne peut pas garder en sécurité."
+"cov.smapimerg":"SMAP et IMERG restent désactivés : leurs données exigent une connexion NASA qu'un site web public ne peut pas garder en sécurité.",
+"load.title":"Chargement des données de ce lieu",
+"load.weather":"Météo",
+"load.soil":"Sol",
+"load.sat":"Verdure par satellite",
+"load.s.done":"terminé",
+"load.s.run":"chargement…",
+"load.s.fail":"indisponible",
+"load.note":"Ces résultats sont provisoires et se mettent à jour à mesure que chaque partie arrive. Le résultat final apparaît quand les trois sont terminées.",
+"load.final":"Toutes les données sont chargées. Ce sont les résultats finaux.",
+"load.finalfail":"Terminé. Ces résultats n'utilisent que les données qui ont pu être chargées.",
+"conf.pending":"Confiance : mise à jour…"
 });
