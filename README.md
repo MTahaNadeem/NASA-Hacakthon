@@ -6,6 +6,8 @@ uncertainty range and its data gaps, and tells the user when to check with a loc
 
 Hero case: wheat-wheat in Punjab (Faisalabad) vs. legume and oilseed rotations. Second region: Ames, Iowa.
 
+Full project report (what was built, how it works, limits, how to run): `docs/Rotation-Explorer-Project-Report.docx`.
+
 ## Status (honest)
 
 | Part | State |
@@ -13,9 +15,9 @@ Hero case: wheat-wheat in Punjab (Faisalabad) vs. legume and oilseed rotations. 
 | Scoring engine (`app/scoring.js`) | Built, unit-tested (`node tests/scoring.test.js`) |
 | Web app (`app/`) | Built, 10 languages, checked in a headless browser |
 | Any-place lookup in the browser | **Works:** NASA POWER (no key) and SoilGrids (ISRIC, not NASA), fetched live |
-| NASA data backend (`backend/`) | **Optional, deployed on Render.** Adds a shared cache, weather indicators and, with a server-side NASA token, **recent SMAP soil moisture and IMERG rain** (last 30 days, shown as extra evidence in the NASA data tab, **not used in the score**). Without the token those two show only their newest date. See `backend/README.md` |
+| NASA data backend (`backend/`) | **Optional, deployed on Render.** Adds a shared cache, weather indicators and, with a server-side NASA token, **recent SMAP soil moisture and IMERG rain** (last 30 days, shown in the NASA data tab and used in the score only as a small capped adjustment, at most 7.5% each). Without the token those two show only their newest date. See `backend/README.md` |
 | `pipeline/` (offline cache builder) | POWER and SoilGrids ran; AppEEARS (MODIS/SMAP) needs an Earthdata login on your own machine; IMERG is optional and slow |
-| Data in `app/data/` | **Real NASA POWER** for Faisalabad and Ames. Soil, MODIS, SMAP and IMERG are not in those files, and the app says so in its data-gap notes |
+| Data in `app/data/` | **Real data** for ten places: NASA POWER climate, SoilGrids soil, a MODIS NDVI climatology and a SMAP monthly climatology |
 
 ## NASA data architecture
 
