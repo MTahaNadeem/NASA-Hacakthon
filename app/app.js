@@ -6,7 +6,7 @@
   var LB = { shown: false, timer: null };
   var SRC = ["power", "soilgrids", "modis", "smap", "imerg"], SRC_NAME = { power: "NASA POWER", soilgrids: "SoilGrids", modis: "MODIS", smap: "SMAP", imerg: "GPM IMERG" };
   var TABS = ["profile", "cal", "whatif", "rules", "mine", "cmp", "nasa"];
-  var state = { cfgRaw: null, cfgBase: null, cfg: null, index: [], places: [], loc: null, data: null, presetKey: null,
+  var state = { ovPeriod: "year", cfgRaw: null, cfgBase: null, cfg: null, index: [], places: [], loc: null, data: null, presetKey: null,
     sl: { water: .5, income: .5, soil: .5 }, rainDelta: 0, tempDelta: 0, irr: "u", overrides: {},
     map: null, markers: {}, customMarker: null, pin: null, loading: false, loadToken: 0, tab: "rot", status: null,
     cmp: null, cmpToken: 0, printOpen: [], urlTimer: null,
@@ -103,7 +103,7 @@
       if (state.cmp && state.cmp.placeId) q.set("cmp", state.cmp.placeId);
       if (Object.keys(state.overrides).length) q.set("r", JSON.stringify(state.overrides));
       if (state.mine.length) q.set("mine", state.mine.map(function (p) { return p.join("+"); }).join(";"));
-      try { history.replaceState(null, "", "?" + q.toString()); } catch (e) {}
+      try { history.replaceState(null, "", "?" + q.toString() + (location.hash || "")); } catch (e) {}
     };
     if (now) go(); else state.urlTimer = setTimeout(go, 300);
   }
@@ -263,9 +263,11 @@
     NasaPanel.fetchRecent(a.lat, a.lon, function (part) { if (a.token === n.token) { n.recent = part; feed(part); renderNasa(); } }).then(function (j) { if (a.token !== n.token) return; n.recent = j; n.recentStatus = "ok"; feed(j); renderNasa(); syncLoading(); },
       function (e) { if (a.token !== n.token) return; n.recentStatus = e && e.code === "not_configured" ? "off" : "err"; if (window.console) console.warn("recent SMAP/IMERG:", e); renderNasa(); syncLoading(); });
   }
+  function renderAllOverviewOnly() { var d = scen(state.data); renderOverview(rank(state.cfg, d, currentIds()), d); }
   function renderNasa() {
     renderCovNote();
     var el = $("nasa"), n = state.nasa; if (!el) return;
+    if (state.data && state.loc && n.recent) { try { renderAllOverviewOnly(); } catch (e) {} }
     $("t-nasa").hidden = !NasaPanel.enabled();
     if (!state.data) { el.innerHTML = "<p class='mini'>" + esc(t("nasa.pick")) + "</p>"; return; }
     if (n.status === "off") { el.innerHTML = "<p class='mini'>" + esc(t("nasa.off")) + "</p>"; return; }
@@ -277,21 +279,39 @@
     el.innerHTML = notes + body;
   }
 
-  /* ---------- decorative hero art (no data) ---------- */
-  function buildArt() {
-    var cols = ["#bfe3c9", "#8fcca3", "#f1d58a", "#6fb88a", "#d9eedf", "#e8c46a"], h = "", i;
-    for (i = 0; i < 36; i++) h += "<i style='background:" + cols[(i * 7 + Math.floor(i / 6) * 3) % cols.length] + ";opacity:" + (0.65 + ((i * 13) % 5) / 14) + "'></i>";
-    $("art").innerHTML = h;
+
+  /* ---------- Overview page (the dashboard) ---------- */
+  function renderOverview(out, d) {
+    var rec = $("ov-rec"), ins = $("ov-ins"), tr = $("ov-trend"), note = $("ov-note"); if (!rec || !window.Overview) return;
+    if (!out || !state.data) { rec.innerHTML = "<p class='mini'>" + esc(t("ov.empty")) + "</p>"; ins.innerHTML = ""; tr.innerHTML = ""; note.textContent = ""; return; }
+    var top = out.results[0], n = state.nasa, rs = n.recent && n.recent.smap && n.recent.smap.valid_passes >= 3 ? n.recent.smap.mean : null;
+    var m = Overview.model(state.data, top, state.cfg, { period: state.ovPeriod, nowMonth: new Date().getMonth(), recentSmap: rs });
+    if (!m) { rec.innerHTML = ""; return; }
+    var cur = out.results.filter(function (r) { return r.id === state.loc.current_rotation; })[0];
+    var line = (cur && top.id === cur.id) ? t("sum.vs.cur") : (cur ? t("sum.vs.up", { d: Math.max(1, Math.round(100 * (top.mean - cur.mean))), cur: rotLabel(cur.id) }) : "");
+    var C = 2 * Math.PI * 52, off = C * (1 - m.score / 100);
+    var seq = m.plan.map(function (c, i) { return (i ? "<li class='ar' aria-hidden='true'>" + Overview.iconSvg("arrow", 18) + "</li>" : "") + "<li><span class='ci'>" + Overview.iconSvg(Overview.iconFor(c), 28) + "</span><b>" + esc(cropName(c)) + "</b></li>"; }).join("");
+    rec.innerHTML = "<div class='recgrid'><div class='ring' role='img' aria-label='" + esc(t("ov.score") + " " + m.score + "/100") + "'><svg viewBox='0 0 120 120' width='132' height='132'><circle cx='60' cy='60' r='52' fill='none' stroke='var(--soft2)' stroke-width='10'/><circle cx='60' cy='60' r='52' fill='none' stroke='var(--deep2)' stroke-width='10' stroke-linecap='round' stroke-dasharray='" + C.toFixed(1) + "' stroke-dashoffset='" + off.toFixed(1) + "' transform='rotate(-90 60 60)'/></svg><div class='rv'><b>" + m.score + "</b><span>/100</span><small>" + esc(t("ov.score")) + "</small></div></div>" +
+      "<div class='recplan'><h3>" + esc(t("ov.plan")) + "</h3><ol class='planseq'>" + seq + "<li class='ar rep' title='" + esc(t("ov.repeat")) + "'>" + Overview.iconSvg("repeat", 18) + "</li></ol>" +
+      "<p class='recname'><bdi>" + esc(rotLabel(top.id)) + "</bdi> " + confPill(Scoring.confidence(top, d), !state.provisional) + "</p>" + (line ? "<p class='mini'>" + esc(line) + "</p>" : "") + "</div></div>" +
+      "<p class='mini'>" + esc(t("ov.scorehint")) + " " + esc(t("card.range", { lo: m.low, hi: m.high })) + "</p>";
+    var na = "<span class='na'>" + esc(t("ov.na")) + "</span>";
+    var cell = function (icon, label, val, sub) { return "<div class='insc'><span class='ii'>" + Overview.iconSvg(icon, 26) + "</span><b>" + val + "</b><span>" + esc(label) + "</span>" + (sub ? "<small>" + esc(sub) + "</small>" : "") + "</div>"; };
+    ins.innerHTML = "<div class='insrow'>" + cell("temp", t("ov.temp"), m.temp == null ? na : m.temp.toFixed(1) + " °C") + cell("rain", t("ov.rain"), m.rain == null ? na : Math.round(m.rain) + " mm") +
+      cell("soil", t("ov.moist"), m.moist ? Math.round(m.moist.pct) + " %" : na, m.moist ? t(m.moist.source === "recent" ? "ov.moist.recent" : "ov.moist.clim") : t("ov.moist.none")) + "</div>";
+    var ML = monthNames("narrow");
+    tr.innerHTML = Overview.trendSvg(m.trend, ML, t, esc) || "<p class='mini'>" + esc(t("ov.na")) + "</p>";
+    var y = m.trend.years; note.textContent = t("ov.insight.note") + (y ? " " + t("ov.trend.note", { y0: y[0], y1: y[1] }) : "") + (state.data.synthetic ? " " + t("res.synth") : "");
   }
 
   /* ---------- init ---------- */
   function init() {
-    buildArt(); buildLangSelect(); NasaPanel.wake();
+    buildLangSelect(); NasaPanel.wake();
     var code = I18N.detect();
     Promise.all([getJSON("rotations.json"), getJSON("data/index.json"), I18N.set(code), getJSON("places.json")]).then(function (r) {
       state.cfgRaw = r[0]; state.cfg = r[0]; state.cfgBase = r[0]; state.index = r[1]; state.places = r[3];
       var u = readUrl();
-      applyStatic(); buildPresetOptions(); buildLocationList(); buildCmpOptions(); buildMap(); bindInputs(); bindTabs(); bindShare(); bindPwa(); renderHow(); renderMine(); syncControls(); setTab(state.tab, true); renderNasa();
+      applyStatic(); buildPresetOptions(); buildLocationList(); buildCmpOptions(); buildMap(); bindInputs(); bindTabs(); bindShare(); bindPwa(); renderHow(); renderMine(); syncControls(); setTab(state.tab, true); renderNasa(); renderOverview(null);
       var place = u.loc && findPlace(u.loc);
       if (place) selectPlace(place);
       else if (u.lat != null && u.lon != null) loadCustom(u.lat, u.lon, { preset: u.preset && state.cfgRaw.presets[u.preset] ? u.preset : null });
@@ -514,8 +534,9 @@
     $("preset").addEventListener("change", function () { applyPreset($("preset").value); });
     $("coordform").addEventListener("submit", function (e) { e.preventDefault(); loadCustom(parseFloat($("lat").value), parseFloat($("lon").value)); });
     bindSearch(); bindGps();
+    $("ov-period").addEventListener("change", function () { state.ovPeriod = $("ov-period").value; if (state.data && state.loc) renderAllOverviewOnly(); });
     $("analyse").addEventListener("click", function () { if (state.pin) loadCustom(state.pin.lat, state.pin.lon, { fromMap: true }); });
-    $("viewres").addEventListener("click", function () { $("step3").scrollIntoView({ behavior: "smooth", block: "start" }); });
+    $("viewres").addEventListener("click", function () { if (window.Router) Router.go("app/planner"); else $("step3").scrollIntoView({ behavior: "smooth", block: "start" }); });
     ["water", "income", "soil"].forEach(function (k) {
       $("sl-" + k).addEventListener("input", function (e) { state.sl[k] = e.target.value / 100; $("o-" + k).textContent = e.target.value + "%"; renderAll(); });
     });
@@ -763,7 +784,7 @@
         "<h4 class='sh flag'>" + esc(t("card.agro")) + "</h4><ul>" + li(x.flags) + "</ul></details></article>";
     });
     $("cards").innerHTML = h;
-    renderFlip(); renderCompare(); markScrollers(); writeUrl();
+    renderFlip(); renderCompare(); renderOverview(out, d); markScrollers(); writeUrl();
   }
 
   // Where would the top choice change? Rain and temperature are swept separately against the unchanged record.
