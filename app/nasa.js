@@ -4,7 +4,10 @@
   "use strict";
 
   function backendUrl() { var c = (root.AGRISHIFT || {}).backendUrl || ""; return String(c).replace(/\/+$/, ""); }
-  function enabled() { return !!backendUrl(); }
+  // "backend": the optional server in backend/ (faster, adds weather indicators). "browser": no server; the page reads NASA and soil
+  // files itself (direct.js). null: neither is possible (e.g. tests), so the NASA tab stays hidden.
+  function mode() { if (backendUrl()) return "backend"; return root.DirectData && root.DirectData.available() ? "browser" : null; }
+  function enabled() { return mode() !== null; }
 
   function get(path, timeoutMs) {
     var ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
@@ -15,11 +18,11 @@
     }).then(function (j) { if (timer) clearTimeout(timer); return j; }, function (e) { if (timer) clearTimeout(timer); throw e; });
   }
   function q(lat, lon) { return "?lat=" + encodeURIComponent(lat.toFixed(4)) + "&lon=" + encodeURIComponent(lon.toFixed(4)); }
-  function fetchLocation(lat, lon) { return get("/api/location" + q(lat, lon)); }
-  function fetchNdvi(lat, lon) { return get("/api/ndvi" + q(lat, lon) + "&months=36", 150000); }
+  function fetchLocation(lat, lon) { return mode() === "backend" ? get("/api/location" + q(lat, lon)) : root.DirectData.status(); }
+  function fetchNdvi(lat, lon) { return mode() === "backend" ? get("/api/ndvi" + q(lat, lon) + "&months=36", 150000) : root.DirectData.ndvi(lat, lon, 36); }
   // Free hosts sleep when idle; touching /api/health as soon as the page opens starts the wake-up while the visitor is still choosing a place.
-  function wake() { if (enabled()) get('/api/health', 70000).catch(function () {}); }
-  function fetchSoil(lat, lon) { return get("/api/soil" + q(lat, lon), 90000); }
+  function wake() { if (mode() === "backend") get('/api/health', 70000).catch(function () {}); }
+  function fetchSoil(lat, lon) { return mode() === "backend" ? get("/api/soil" + q(lat, lon), 90000) : root.DirectData.soil(lat, lon); }
 
   function num(x, d) { return x == null || isNaN(x) ? null : (+x).toFixed(d == null ? 0 : d); }
   function signed(x, d) { var s = num(x, d); return s == null ? null : (x > 0 ? "+" : "") + s; }
@@ -31,7 +34,7 @@
   }
 
   /* Turn API responses into what the panel shows. Everything is optional: a missing block is simply not drawn. */
-  function model(loc, ndvi) {
+  function model(loc, ndvi, soil) {
     var m = { recent: null, trend: null, sources: [], smap: null, imerg: null, ndvi: null };
     if (loc) {
       var r = loc.indicators && loc.indicators.recent_vs_normal;
@@ -51,6 +54,7 @@
                  series: (n.series || []).map(function (s) { return s.ndvi; }) };
       var p = prov("nasa.s.ndvi", n.provenance); if (p) m.sources.push(p);
     }
+    if (soil && soil.provenance) { var sp = prov("nasa.s.soilgrids", soil.provenance); if (sp) m.sources.push(sp); }
     return m;
   }
 
@@ -99,6 +103,6 @@
     return out.join("");
   }
 
-  var api = { wake: wake, enabled: enabled, fetchLocation: fetchLocation, fetchNdvi: fetchNdvi, fetchSoil: fetchSoil, model: model, html: html, spark: spark };
+  var api = { wake: wake, mode: mode, enabled: enabled, fetchLocation: fetchLocation, fetchNdvi: fetchNdvi, fetchSoil: fetchSoil, model: model, html: html, spark: spark };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.NasaPanel = api;
 })(typeof window !== "undefined" ? window : globalThis);

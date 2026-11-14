@@ -1,4 +1,4 @@
-# One-click backend deploy on Render (free plan). Untested: it needs your Render account, which I cannot create.
+# OPTIONAL backend deploy on Render. The site works without it (see app/direct.js). Untested; Render may ask for a card.
 # Render dashboard -> New + -> Blueprint -> pick this repository -> Apply.
 services:
   - type: web

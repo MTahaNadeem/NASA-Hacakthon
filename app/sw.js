@@ -1,7 +1,7 @@
 /* Rotation Explorer service worker: makes the app installable and usable offline for pages/places already visited.
  * Same-origin files are network-first (so you always get fresh code online, and the cached copy offline).
  * Live data APIs and map tiles are never cached here. */
-const VERSION = "rx-v2", SHELL = ["./", "index.html", "style.css", "app.js", "scoring.js", "live.js", "config.js", "nasa.js", "i18n.js", "i18n/en.js", "places.json", "rotations.json", "data/index.json", "manifest.webmanifest", "icon.svg"];
+const VERSION = "rx-v3", SHELL = ["./", "index.html", "style.css", "app.js", "scoring.js", "live.js", "config.js", "igh.js", "direct.js", "nasa.js", "i18n.js", "i18n/en.js", "places.json", "rotations.json", "data/index.json", "manifest.webmanifest", "icon.svg"];
 const CDN = ["https://unpkg.com/leaflet@1.9.4/dist/leaflet.js", "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"];
 const LIVE = /power\.larc\.nasa\.gov|rest\.isric\.org|geocoding-api\.open-meteo\.com|tile\.openstreetmap\.org/;
 

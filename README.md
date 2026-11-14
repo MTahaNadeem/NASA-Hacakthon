@@ -21,7 +21,7 @@ Hero case: wheat-wheat in Punjab (Faisalabad) vs. legume and oilseed rotations. 
 
 Farmers never log in and no NASA credential is ever in the browser. The browser sends only a latitude and longitude to
 the backend, which fetches real NASA data (cached per grid cell) and labels each value as an observation, a model
-estimate, a satellite estimate or a calculation, together with how old it is. Read `docs/NASA-DATA-ARCHITECTURE.md` for the
+estimate, a satellite estimate or a calculation, together with how old it is. MODIS and soil are read straight from the browser, so GitHub Pages alone is enough. Read `docs/NASA-DATA-ARCHITECTURE.md` for the
 research, the comparison table and the limitations. AppEEARS is no longer part of the farmer path.
 
 ## Run the app

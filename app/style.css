@@ -296,3 +296,4 @@ code{background:var(--soft);padding:1px 6px;border-radius:6px;font-size:.9em}
 .spark{display:block;width:100%;height:64px;color:var(--accent-dark);margin:6px 0}
 .nasa-tech{font-size:.82rem;color:var(--muted)}.nasa-card details{margin-block-start:10px}.nasa-card summary{cursor:pointer;font-weight:600}
 .nasa-err{color:#8a1c1c}
+.kind.k-third_party{background:#eceff1;color:#455a64;border-color:transparent}

@@ -222,10 +222,10 @@ I18N.add("zh", {
 "mine.clear":"移除我的轮作",
 "mine.label":"你的轮作",
 "tab.nasa":"NASA 数据",
-"nasa.hint":"这个地点的真实 NASA 数据，由我们的服务器获取。您永远不需要 NASA 账号或密钥。",
+"nasa.hint":"这个地点的真实 NASA 卫星数据，直接从 NASA 的公开文件读取。您永远不需要 NASA 账号或密钥。",
 "nasa.off":"此应用副本未连接到 NASA 数据服务器。结果仍使用您浏览器中加载的天气记录。",
 "nasa.loading":"正在获取 NASA 数据…",
-"nasa.err":"NASA 数据服务器没有响应。没有编造任何内容，页面其余部分仍可使用。",
+"nasa.err":"暂时无法获取部分 NASA 数据。没有编造任何内容，页面其余部分仍可使用。",
 "nasa.pick":"请先选择一个地点。",
 "nasa.recent":"最近 90 天与常年对比",
 "nasa.rain":"降雨：{mm} 毫米（常年 {norm} 毫米，{pct}%）",
@@ -240,7 +240,7 @@ I18N.add("zh", {
 "nasa.ndviGap":"{total} 次卫星过境中有 {n} 次没有可用数值（有云或质量低），已留空。",
 "nasa.smap":"卫星土壤湿度（SMAP）",
 "nasa.imerg":"卫星降雨（IMERG）",
-"nasa.pending":"找到最新的卫星过境：{date}。其数值暂未显示，因为读取需要 NASA 登录，而该登录只能由我们的服务器保管。",
+"nasa.pending":"找到最新的卫星过境：{date}。其数值不显示，因为读取需要 NASA 登录，而公开网站无法安全保存该登录。",
 "nasa.k.reanalysis":"模型估计",
 "nasa.k.satellite_estimate":"卫星估计",
 "nasa.k.calculated":"计算得出",
@@ -254,5 +254,7 @@ I18N.add("zh", {
 "nasa.s.ind":"指标（由本应用计算）",
 "nasa.s.ndvi":"绿度（NASA MODIS）",
 "nasa.tech":"技术细节（英文）",
-"nasa.cache":"来自我们的缓存"
+"nasa.cache":"来自我们的缓存",
+"nasa.s.soilgrids":"土壤（ISRIC SoilGrids，非 NASA）",
+"nasa.k.third_party":"非 NASA"
 });

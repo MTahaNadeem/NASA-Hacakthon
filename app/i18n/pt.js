@@ -222,10 +222,10 @@ I18N.add("pt", {
 "mine.clear":"Remover minha rotação",
 "mine.label":"Sua rotação",
 "tab.nasa":"Dados da NASA",
-"nasa.hint":"Dados reais da NASA para este local exato, obtidos pelo nosso servidor. Você nunca precisa de uma conta ou chave da NASA.",
+"nasa.hint":"Dados reais de satélite da NASA para este local exato, lidos diretamente dos arquivos públicos da NASA. Você nunca precisa de uma conta ou chave da NASA.",
 "nasa.off":"Esta cópia do aplicativo não está ligada ao servidor de dados da NASA. O registro do clima carregado no seu navegador ainda é usado nos resultados.",
 "nasa.loading":"Obtendo dados da NASA…",
-"nasa.err":"O servidor de dados da NASA não respondeu. Nada foi inventado e o restante da página continua funcionando.",
+"nasa.err":"Alguns dados da NASA não puderam ser obtidos agora. Nada foi inventado e o restante da página continua funcionando.",
 "nasa.pick":"Escolha um local primeiro.",
 "nasa.recent":"Últimos 90 dias comparados ao habitual",
 "nasa.rain":"Chuva: {mm} mm (habitual {norm} mm, {pct}%)",
@@ -240,7 +240,7 @@ I18N.add("pt", {
 "nasa.ndviGap":"{n} de {total} passagens do satélite não tiveram valor utilizável (nuvens ou baixa qualidade) e ficam em branco.",
 "nasa.smap":"Umidade do solo por satélite (SMAP)",
 "nasa.imerg":"Chuva por satélite (IMERG)",
-"nasa.pending":"Passagem de satélite mais recente encontrada: {date}. Seus valores ainda não são mostrados, porque lê-los exige um login da NASA que só o nosso servidor pode guardar.",
+"nasa.pending":"Passagem de satélite mais recente encontrada: {date}. Seus valores não são mostrados, porque lê-los exige um login da NASA que um site público não pode guardar com segurança.",
 "nasa.k.reanalysis":"Estimativa de modelo",
 "nasa.k.satellite_estimate":"Estimativa por satélite",
 "nasa.k.calculated":"Calculado",
@@ -254,5 +254,7 @@ I18N.add("pt", {
 "nasa.s.ind":"Indicadores (calculados por este aplicativo)",
 "nasa.s.ndvi":"Verdor (NASA MODIS)",
 "nasa.tech":"Detalhes técnicos (em inglês)",
-"nasa.cache":"reaproveitado do nosso cache"
+"nasa.cache":"reaproveitado do nosso cache",
+"nasa.s.soilgrids":"Solo (ISRIC SoilGrids, não é da NASA)",
+"nasa.k.third_party":"Não é da NASA"
 });

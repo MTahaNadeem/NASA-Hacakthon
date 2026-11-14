@@ -145,6 +145,29 @@ The thresholds were **not** changed. More real evidence moved the labels, and wh
 
 Also fixed: the wheat rotation set was unreachable for searched places because it required 2+ frost days a year, which a weather grid cell averages away (Lahore 0.2). It now also triggers on a hot summer plus cool winter in the 20-40 degree latitude band.
 
+## 4c. No server required: the browser reads the data itself (VERIFIED)
+
+A hosting account is not needed. Every source below was tested on 2026-11-14 with an `Origin: https://mtahanadeem.github.io` header and answered with browser-friendly CORS headers:
+
+| Source | Used for | Browser access |
+|---|---|---|
+| NASA POWER | weather | GET, `access-control-allow-origin: *` |
+| Planetary Computer STAC search | find MODIS composites | POST preflight and POST both allowed |
+| Planetary Computer token endpoint | read MODIS files (one token for the container `modiseuwest/modis-061-cogs`) | GET allowed |
+| MODIS COG files (Azure storage) | NDVI pixel | `Range` requests allowed (HTTP 206) |
+| ISRIC tile files | soil pixel | `Range` requests allowed (HTTP 206) |
+| NASA CMR | newest SMAP / IMERG date | GET allowed |
+
+So `app/direct.js` reads one soil pixel and one MODIS pixel per composite with range requests (GeoTIFF reader vendored in `app/vendor/`, loaded only when needed). Tested in a real browser with no backend running: the soil values equal the Python backend's to the last digit (Kansas pH 5.1 / 6.8 / 8.6, carbon 17.67, sand 37.53, silt 35.73, clay 26.78), and MODIS gave the same 39 of 42 usable composites and the same latest NDVI 0.5315.
+
+Two pieces had to be written because no library covers them: the **Goode homolosine projection** ISRIC's tiles use (`app/igh.js`; proj4js lacks it; fitted to PROJ and checked on 40,160 worldwide points, median error 0 m, maximum 55 m, none over half a 250 m pixel) and the per-property tile indexes (`app/data/soilgrids/`).
+
+What the browser mode cannot do, and why the optional backend still exists:
+* **SMAP and IMERG values**: these need an Earthdata login that a public website cannot safely hold. Only the newest acquisition date is shown, from public CMR.
+* **Weather indicators** (recent-vs-normal, trends) are computed by the backend only.
+* First load of a new place takes about 20 s for soil plus 36 months of MODIS (soil appears after about 9 s), because the browser makes many small requests. The backend path was about 6-8 s for soil and 15-22 s for MODIS, with a shared cache.
+* Results are cached in the visitor's own browser (12 h for MODIS, 90 days for soil), not shared between visitors.
+
 ## 5. How a brand-new farmer gets NASA data without credentials
 
 1. They open the site and pick a location.

@@ -20,7 +20,7 @@ assert.strictEqual(m.smap.values, false); assert.strictEqual(m.imerg.values, fal
 const h = P.html(m, t, esc);
 assert.ok(h.includes(t("nasa.smap")) && h.includes(t("nasa.imerg")));
 assert.ok(h.includes(m.smap.date), "shows the real newest satellite pass date");
-assert.ok(/needs a NASA login that only our server can hold/.test(h));
+assert.ok(/needs a NASA login that a public website cannot safely keep/.test(h));
 
 // 3. every source is labelled with its kind, and soil wetness is NOT labelled an observation
 assert.ok(h.includes("k-reanalysis") && h.includes("k-satellite_estimate") && h.includes("k-calculated"));
@@ -46,6 +46,11 @@ const eh = P.html(P.model(evil, null), t, esc); assert.ok(!/<img|<script/i.test(
 assert.strictEqual(P.html(P.model(null, null), t, esc), "");
 assert.doesNotThrow(() => P.html(P.model(loc, null), t, esc));
 assert.doesNotThrow(() => P.html(P.model({ climate: {} }, { ndvi: { series: [], valid_count: 0, total_count: 0 } }), t, esc));
+
+// 7b. soil is listed too, and labelled NOT NASA
+const ms = P.model(loc, ndvi, fx("api_soil_ames.json")); assert.strictEqual(ms.sources.length, 5);
+const sg = ms.sources.find(x => x.label === "nasa.s.soilgrids"); assert.strictEqual(sg.kind, "third_party");
+const hs = P.html(ms, t, esc); assert.ok(hs.includes("k-third_party") && hs.includes(t("nasa.k.third_party")) && hs.includes("not NASA"));
 
 // 8. disabled without a backend URL; no credentials in the client
 assert.strictEqual(P.enabled(), false);

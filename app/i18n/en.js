@@ -222,10 +222,10 @@ I18N.add("en", {
 "mine.clear":"Remove my rotation",
 "mine.label":"Your rotation",
 "tab.nasa":"NASA data",
-"nasa.hint":"Real NASA data for this exact place, fetched by our server. You never need a NASA account or key.",
+"nasa.hint":"Real NASA satellite data for this exact place, read straight from NASA's public files. You never need a NASA account or key.",
 "nasa.off":"This copy of the app is not connected to the NASA data server. The weather record loaded in your browser is still used for the results.",
 "nasa.loading":"Getting NASA data…",
-"nasa.err":"The NASA data server did not answer. Nothing was made up, and the rest of the page still works.",
+"nasa.err":"Some NASA data could not be fetched just now. Nothing was made up, and the rest of the page still works.",
 "nasa.pick":"Choose a place first.",
 "nasa.recent":"Last 90 days compared with the usual",
 "nasa.rain":"Rain: {mm} mm (usual {norm} mm, {pct}%)",
@@ -240,7 +240,7 @@ I18N.add("en", {
 "nasa.ndviGap":"{n} of {total} satellite passes had no usable value (cloud or low quality) and are left blank.",
 "nasa.smap":"Satellite soil moisture (SMAP)",
 "nasa.imerg":"Satellite rain (IMERG)",
-"nasa.pending":"Newest satellite pass found: {date}. Its values are not shown yet, because reading them needs a NASA login that only our server can hold.",
+"nasa.pending":"Newest satellite pass found: {date}. Its values are not shown, because reading them needs a NASA login that a public website cannot safely keep.",
 "nasa.k.reanalysis":"Model estimate",
 "nasa.k.satellite_estimate":"Satellite estimate",
 "nasa.k.calculated":"Calculated",
@@ -254,5 +254,7 @@ I18N.add("en", {
 "nasa.s.ind":"Indicators (calculated by this app)",
 "nasa.s.ndvi":"Greenness (NASA MODIS)",
 "nasa.tech":"Technical details (English)",
-"nasa.cache":"reused from our cache"
+"nasa.cache":"reused from our cache",
+"nasa.s.soilgrids":"Soil (ISRIC SoilGrids, not NASA)",
+"nasa.k.third_party":"Not NASA"
 });

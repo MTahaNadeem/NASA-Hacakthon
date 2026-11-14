@@ -1,4 +1,6 @@
-# NASA data backend (FastAPI)
+# NASA data backend (FastAPI) - OPTIONAL
+
+> **You do not need to deploy this.** The website reads NASA MODIS and ISRIC soil data directly in the browser (`app/direct.js`), free, on GitHub Pages, with no account or card. This backend is an optional extra: faster first loads with a shared cache, weather indicators, and the place to add SMAP/IMERG values later (they need a server-side Earthdata login). Deploying it needs a host account, and some free hosts ask for a card.
 
 Gives the app real NASA data for **any coordinate**, with no farmer login, no API key in the browser and no
 waiting for an AppEEARS job. Read `docs/NASA-DATA-ARCHITECTURE.md` first: it explains what was verified, what

@@ -222,10 +222,10 @@ I18N.add("sw", {
 "mine.clear":"Ondoa mzunguko wangu",
 "mine.label":"Mzunguko wako",
 "tab.nasa":"Data za NASA",
-"nasa.hint":"Data halisi ya NASA kwa mahali hapa hasa, inayoletwa na seva yetu. Hutahitaji kamwe akaunti au ufunguo wa NASA.",
+"nasa.hint":"Data halisi ya setilaiti ya NASA kwa mahali hapa hasa, inayosomwa moja kwa moja kutoka kwenye faili za umma za NASA. Hutahitaji kamwe akaunti au ufunguo wa NASA.",
 "nasa.off":"Nakala hii ya programu haijaunganishwa na seva ya data ya NASA. Rekodi ya hali ya hewa iliyopakiwa kwenye kivinjari chako bado inatumika kwa matokeo.",
 "nasa.loading":"Inaleta data ya NASA…",
-"nasa.err":"Seva ya data ya NASA haikujibu. Hakuna kitu kilichobuniwa, na sehemu nyingine ya ukurasa inafanya kazi.",
+"nasa.err":"Baadhi ya data ya NASA haikuweza kuletwa sasa hivi. Hakuna kitu kilichobuniwa, na sehemu nyingine ya ukurasa inafanya kazi.",
 "nasa.pick":"Chagua mahali kwanza.",
 "nasa.recent":"Siku 90 zilizopita ukilinganisha na kawaida",
 "nasa.rain":"Mvua: {mm} mm (kawaida {norm} mm, {pct}%)",
@@ -240,7 +240,7 @@ I18N.add("sw", {
 "nasa.ndviGap":"Safari {n} kati ya {total} za setilaiti hazikuwa na thamani inayotumika (mawingu au ubora wa chini) na zimeachwa wazi.",
 "nasa.smap":"Unyevu wa udongo kutoka setilaiti (SMAP)",
 "nasa.imerg":"Mvua kutoka setilaiti (IMERG)",
-"nasa.pending":"Safari ya hivi karibuni ya setilaiti imepatikana: {date}. Thamani zake bado hazionyeshwi, kwa sababu kuzisoma kunahitaji kuingia NASA ambako seva yetu pekee inaweza kushikilia.",
+"nasa.pending":"Safari ya hivi karibuni ya setilaiti imepatikana: {date}. Thamani zake hazionyeshwi, kwa sababu kuzisoma kunahitaji kuingia NASA ambako tovuti ya umma haiwezi kuhifadhi kwa usalama.",
 "nasa.k.reanalysis":"Makadirio ya modeli",
 "nasa.k.satellite_estimate":"Makadirio ya setilaiti",
 "nasa.k.calculated":"Imekokotolewa",
@@ -254,5 +254,7 @@ I18N.add("sw", {
 "nasa.s.ind":"Viashiria (vimekokotolewa na programu hii)",
 "nasa.s.ndvi":"Ukijani (NASA MODIS)",
 "nasa.tech":"Maelezo ya kiufundi (kwa Kiingereza)",
-"nasa.cache":"imetumika tena kutoka kwenye akiba yetu"
+"nasa.cache":"imetumika tena kutoka kwenye akiba yetu",
+"nasa.s.soilgrids":"Udongo (ISRIC SoilGrids, si ya NASA)",
+"nasa.k.third_party":"Si ya NASA"
 });

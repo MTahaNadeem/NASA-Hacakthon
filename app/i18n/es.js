@@ -222,10 +222,10 @@ I18N.add("es", {
 "mine.clear":"Quitar mi rotación",
 "mine.label":"Tu rotación",
 "tab.nasa":"Datos de la NASA",
-"nasa.hint":"Datos reales de la NASA para este lugar exacto, obtenidos por nuestro servidor. Nunca necesita una cuenta ni una clave de la NASA.",
+"nasa.hint":"Datos satelitales reales de la NASA para este lugar exacto, leídos directamente de los archivos públicos de la NASA. Nunca necesita una cuenta ni una clave de la NASA.",
 "nasa.off":"Esta copia de la aplicación no está conectada al servidor de datos de la NASA. El registro meteorológico cargado en su navegador se sigue usando para los resultados.",
 "nasa.loading":"Obteniendo datos de la NASA…",
-"nasa.err":"El servidor de datos de la NASA no respondió. No se inventó nada y el resto de la página sigue funcionando.",
+"nasa.err":"No se pudieron obtener algunos datos de la NASA en este momento. No se inventó nada y el resto de la página sigue funcionando.",
 "nasa.pick":"Elija primero un lugar.",
 "nasa.recent":"Últimos 90 días comparados con lo habitual",
 "nasa.rain":"Lluvia: {mm} mm (habitual {norm} mm, {pct}%)",
@@ -240,7 +240,7 @@ I18N.add("es", {
 "nasa.ndviGap":"{n} de {total} pasadas del satélite no tuvieron un valor utilizable (nubes o baja calidad) y se dejan en blanco.",
 "nasa.smap":"Humedad del suelo por satélite (SMAP)",
 "nasa.imerg":"Lluvia por satélite (IMERG)",
-"nasa.pending":"Se encontró la pasada de satélite más reciente: {date}. Sus valores aún no se muestran, porque leerlos requiere un acceso a la NASA que solo puede guardar nuestro servidor.",
+"nasa.pending":"Se encontró la pasada de satélite más reciente: {date}. Sus valores no se muestran, porque leerlos requiere un acceso a la NASA que un sitio web público no puede guardar con seguridad.",
 "nasa.k.reanalysis":"Estimación de modelo",
 "nasa.k.satellite_estimate":"Estimación por satélite",
 "nasa.k.calculated":"Calculado",
@@ -254,5 +254,7 @@ I18N.add("es", {
 "nasa.s.ind":"Indicadores (calculados por esta aplicación)",
 "nasa.s.ndvi":"Verdor (NASA MODIS)",
 "nasa.tech":"Detalles técnicos (en inglés)",
-"nasa.cache":"reutilizado de nuestra caché"
+"nasa.cache":"reutilizado de nuestra caché",
+"nasa.s.soilgrids":"Suelo (ISRIC SoilGrids, no es de la NASA)",
+"nasa.k.third_party":"No es de la NASA"
 });

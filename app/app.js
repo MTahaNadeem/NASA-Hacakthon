@@ -9,7 +9,7 @@
     sl: { water: .5, income: .5, soil: .5 }, rainDelta: 0, tempDelta: 0, irr: "u", overrides: {},
     map: null, markers: {}, customMarker: null, pin: null, loading: false, loadToken: 0, tab: "rot", status: null,
     cmp: null, cmpToken: 0, printOpen: [], urlTimer: null,
-    nasa: { status: "idle", key: null, loc: null, ndvi: null, ndviStatus: "idle", token: 0 } };
+    nasa: { status: "idle", key: null, loc: null, ndvi: null, soil: null, ndviStatus: "idle", token: 0 } };
   state.tab = "profile"; state.mine = [];
   var $ = function (id) { return document.getElementById(id); };
   var mean = Scoring.mean;
@@ -183,7 +183,7 @@
     if (!d || !NasaPanel.enabled()) { n.status = d ? "off" : "idle"; renderNasa(); return; }
     var key = d.lat.toFixed(4) + "," + d.lon.toFixed(4);
     if (n.key === key && n.status !== "err") return;            // same place, nothing to do
-    var token = ++n.token; n.key = key; n.status = "loading"; n.ndviStatus = "loading"; n.loc = null; n.ndvi = null; renderNasa();
+    var token = ++n.token; n.key = key; n.status = "loading"; n.ndviStatus = "loading"; n.loc = null; n.ndvi = null; n.soil = null; renderNasa();
     NasaPanel.fetchLocation(d.lat, d.lon).then(function (j) {
       if (token !== n.token) return; n.loc = j; n.status = "ok"; renderNasa();
     }).catch(function () { if (token !== n.token) return; n.status = "err"; renderNasa(); });
@@ -195,7 +195,7 @@
       renderNasa();
     }).catch(function () { if (token !== n.token) return; n.ndviStatus = "err"; renderNasa(); });
     if (!d.soil) NasaPanel.fetchSoil(d.lat, d.lon).then(function (j) {     // places loaded from the bundled files have no soil
-      if (token === n.token && state.data === d && LiveData.applySoil(d, j)) { renderProfile(); renderAll(); }
+      if (token === n.token && state.data === d && LiveData.applySoil(d, j)) { n.soil = j; renderProfile(); renderAll(); renderNasa(); }
     }).catch(function () {});
   }
   function renderNasa() {
@@ -203,7 +203,7 @@
     $("t-nasa").hidden = !NasaPanel.enabled();
     if (!state.data) { el.innerHTML = "<p class='mini'>" + esc(t("nasa.pick")) + "</p>"; return; }
     if (n.status === "off") { el.innerHTML = "<p class='mini'>" + esc(t("nasa.off")) + "</p>"; return; }
-    var body = NasaPanel.html(NasaPanel.model(n.loc, n.ndvi), t, esc), notes = "";
+    var body = NasaPanel.html(NasaPanel.model(n.loc, n.ndvi, n.soil), t, esc), notes = "";
     if (n.status === "loading" || (n.status === "ok" && n.ndviStatus === "loading")) notes += "<p class='mini'>" + esc(t("nasa.loading")) + "</p>";
     if (n.status === "err" || n.ndviStatus === "err") notes += "<p class='mini nasa-err' role='alert'>" + esc(t("nasa.err")) + "</p>";
     el.innerHTML = notes + body;
@@ -332,7 +332,7 @@
     $("lat").value = lat.toFixed(2); $("lon").value = lon.toFixed(2);
     state.loading = true; setStatus("st.fetchPower");
     if (!state.data) $("cards").innerHTML = "<p class='mini'>" + esc(t("st.fetchPower")) + "</p>";
-    var lopts = NasaPanel.enabled() ? { soilSource: function (la, lo) { return NasaPanel.fetchSoil(la, lo).then(function (j) { return { soil: j.soil, km: j.distance_km || 0 }; }); } } : {};
+    var lopts = NasaPanel.enabled() ? { soilSource: function (la, lo) { return NasaPanel.fetchSoil(la, lo).then(function (j) { state.nasa.soil = j; renderNasa(); return { soil: j.soil, km: j.distance_km || 0 }; }); } } : {};
     LiveData.fetchLocation(lat, lon, function (key) { if (token === state.loadToken) setStatus(key); }, lopts).then(function (d) {
       if (token !== state.loadToken) return;
       state.loading = false; state.data = d; buildCfg(d.lat, d.lon);
