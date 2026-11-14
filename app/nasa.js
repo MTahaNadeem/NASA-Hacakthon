@@ -18,18 +18,25 @@
     }).then(function (j) { if (timer) clearTimeout(timer); return j; }, function (e) { if (timer) clearTimeout(timer); throw e; });
   }
   function q(lat, lon) { return "?lat=" + encodeURIComponent(lat.toFixed(4)) + "&lon=" + encodeURIComponent(lon.toFixed(4)); }
-  // Soil and satellite data are read by the browser itself whenever it can (about 9 s for soil, 20 s with MODIS, no cold start).
-  // A free backend sleeps when idle and takes about a minute to wake, so it must never sit in the path of data the farmer is waiting for.
-  // The backend only adds the weather indicators, which load in the background; if it is asleep, the page shows the satellite freshness instead.
-  function direct() { return root.DirectData && root.DirectData.available() ? root.DirectData : null; }
+  // Soil and satellite data: the browser reads the files itself first (about 9 s for soil, 20 s with MODIS, no cold start, nothing to wake).
+  // Some browsers cannot: Firefox sends a CORS permission check for range requests that ISRIC's server does not answer, and some networks block
+  // the file hosts. Then the optional backend (which reads the same files on the server) takes over, and the page remembers that, so it does not
+  // retry the browser path for every place. With no backend configured the error is reported, never hidden.
+  var directBroken = false;
+  function direct() { return !directBroken && root.DirectData && root.DirectData.available() ? root.DirectData : null; }
+  function viaBrowserThenBackend(run, path, ms) {
+    var d = direct();
+    if (!d) return backendUrl() ? get(path, ms) : Promise.reject(new Error("this browser cannot read the data files and no backend is configured"));
+    return run(d).catch(function (e) { if (!backendUrl()) throw e; directBroken = true; return get(path, ms); });
+  }
   function fetchLocation(lat, lon) {
     if (mode() !== "backend") return root.DirectData.status();
-    return get("/api/location" + q(lat, lon), 90000).catch(function (e) { var d = direct(); if (!d) throw e; return d.status(); });
+    return get("/api/location" + q(lat, lon), 90000).catch(function (e) { if (!(root.DirectData && root.DirectData.available())) throw e; return root.DirectData.status(); });
   }
-  function fetchNdvi(lat, lon) { var d = direct(); return d ? d.ndvi(lat, lon, 36) : get("/api/ndvi" + q(lat, lon) + "&months=36", 150000); }
+  function fetchNdvi(lat, lon) { return viaBrowserThenBackend(function (d) { return d.ndvi(lat, lon, 36); }, "/api/ndvi" + q(lat, lon) + "&months=36", 150000); }
+  function fetchSoil(lat, lon) { return viaBrowserThenBackend(function (d) { return d.soil(lat, lon); }, "/api/soil" + q(lat, lon), 120000); }
   // Free hosts sleep when idle; touching /api/health as soon as the page opens starts the wake-up while the visitor is still choosing a place.
   function wake() { if (mode() === "backend") get('/api/health', 70000).catch(function () {}); }
-  function fetchSoil(lat, lon) { var d = direct(); return d ? d.soil(lat, lon) : get("/api/soil" + q(lat, lon), 90000); }
 
   function num(x, d) { return x == null || isNaN(x) ? null : (+x).toFixed(d == null ? 0 : d); }
   function signed(x, d) { var s = num(x, d); return s == null ? null : (x > 0 ? "+" : "") + s; }
@@ -110,6 +117,6 @@
     return out.join("");
   }
 
-  var api = { wake: wake, mode: mode, enabled: enabled, fetchLocation: fetchLocation, fetchNdvi: fetchNdvi, fetchSoil: fetchSoil, model: model, html: html, spark: spark };
+  var api = { _reset: function () { directBroken = false; }, wake: wake, mode: mode, enabled: enabled, fetchLocation: fetchLocation, fetchNdvi: fetchNdvi, fetchSoil: fetchSoil, model: model, html: html, spark: spark };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.NasaPanel = api;
 })(typeof window !== "undefined" ? window : globalThis);

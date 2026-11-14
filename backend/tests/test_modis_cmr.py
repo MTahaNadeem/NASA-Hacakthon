@@ -59,3 +59,22 @@ def test_cmr_empty_result_is_none():
 def test_only_expected_hosts_are_whitelisted():
     assert config.UPSTREAM_HOSTS == {"power.larc.nasa.gov", "planetarycomputer.microsoft.com",
                                      "modiseuwest.blob.core.windows.net", "cmr.earthdata.nasa.gov", "files.isric.org"}
+
+
+def test_container_token_is_fetched_once_and_reused_until_near_expiry():
+    calls = []
+    def fetch():
+        calls.append(1); return {"token": "T%d" % len(calls), "msft:expiry": "2026-11-14T12:00:00Z"}
+    modis._tok.update(value=None, expires=0.0)
+    import datetime as dt
+    t0 = dt.datetime(2026, 11, 14, 11, 0, tzinfo=dt.timezone.utc).timestamp()
+    assert modis.container_token(fetch, now=t0) == "T1" and modis.container_token(fetch, now=t0 + 600) == "T1"
+    assert len(calls) == 1                                                # 42 composites would otherwise cost 84 signing calls
+    assert modis.container_token(fetch, now=t0 + 3500) == "T2"           # within 5 minutes of expiry: refreshed
+    modis._tok.update(value=None, expires=0.0)
+
+
+def test_a_token_response_without_a_token_is_an_error():
+    modis._tok.update(value=None, expires=0.0)
+    with pytest.raises(modis.ModisError):
+        modis.container_token(lambda: {"msft:expiry": "2026-11-14T12:00:00Z"})

@@ -81,11 +81,22 @@
     step("Soil file read (ISRIC, range request)", function () {
       return http("https://files.isric.org/soilgrids/latest/data/phh2o/phh2o_0-5cm_mean/tileSG-008-020/tileSG-008-020_3-3.tif", { headers: { Range: "bytes=0-1023" } }).then(function (r) { if (r.status !== 206 && r.status !== 200) throw new Error("HTTP " + r.status); return "HTTP " + r.status; });
     });
+    step("Soil server reachable, no Range header (HEAD)", function () {
+      return http("https://files.isric.org/soilgrids/latest/data/phh2o/phh2o_0-5cm_mean/tileSG-008-020/tileSG-008-020_3-3.tif", { method: "HEAD" }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return "HTTP " + r.status + " (the server itself is reachable)"; });
+    });
+    step("MODIS storage reachable, no Range header (HEAD)", function () {
+      if (!stacItem || !token) throw new Error("skipped: an earlier MODIS check failed");
+      return http(stacItem.assets["250m_16_days_NDVI"].href + "?" + token, { method: "HEAD" }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return "HTTP " + r.status + " (the server itself is reachable)"; });
+    });
     step("End to end: soil for Kansas (expect pH 6.8)", function () {
       return window.DirectData.soil(38.5, -98.0).then(function (j) { if (!j.soil.ph) throw new Error("no soil returned: " + (j.gaps || []).join(" ")); return "pH " + j.soil.ph.mean + ", clay " + j.soil.clay.mean + "%" + (j.provenance.served_from_cache ? " (from this browser's cache)" : ""); });
     });
     step("End to end: MODIS greenness, Lahore farmland, 6 months", function () {
       return window.DirectData.ndvi(31.45, 74.10, 6).then(function (j) { var n = j.ndvi; if (!n.valid_count) throw new Error("no usable composites out of " + n.total_count); return n.valid_count + " of " + n.total_count + " composites usable; newest " + n.provenance.data_through; });
+    });
+    step("Fallback: soil for Kansas read by the backend (expect pH 6.8)", function () {
+      var u = (window.AGRISHIFT || {}).backendUrl; if (!u) return "no backend configured";
+      return http(u.replace(/\/+$/, "") + "/api/soil?lat=38.5&lon=-98.0", null, 120000).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }).then(function (j) { if (!j.soil || !j.soil.ph) throw new Error("backend returned no soil"); return "pH " + j.soil.ph.mean + ", clay " + j.soil.clay.mean + "% (a sleeping free server can take about a minute the first time)"; });
     });
     step("Optional backend (agrishift-api)", function () {
       var u = (window.AGRISHIFT || {}).backendUrl; if (!u) return "not configured (fine: the site does not need it)";
@@ -93,7 +104,14 @@
     });
     chain.then(function () {
       var bad = rows.filter(function (r) { return r[1] !== "OK"; });
-      document.getElementById("report").value = "Rotation Explorer diagnostics " + new Date().toISOString() + "\n" + (bad.length ? bad.length + " check(s) FAILED" : "all checks passed") + "\n\n" + rows.map(function (r) { return r[1] + "  " + r[0] + "  " + r[2] + "  " + r[3]; }).join("\n");
+      var by = function (n) { return rows.filter(function (r) { return r[0].indexOf(n) === 0; })[0]; };
+      var verdict = [];
+      var rangeBad = (by("Soil file read") || [])[1] === "FAIL", headOk = (by("Soil server reachable") || [])[1] === "OK";
+      if (rangeBad && headOk) verdict.push("MEANING: the soil server is reachable, but this browser refuses to read PART of a file from it (a CORS rule; typical for Firefox). The site will use its backend for soil and satellite data instead.");
+      if (rangeBad && !headOk) verdict.push("MEANING: this browser or network cannot reach the soil server at all (a firewall, ad blocker or privacy setting). The site will use its backend instead.");
+      var fb = by("Fallback: soil");
+      if ((rangeBad || (by("MODIS file read") || [])[1] === "FAIL") && fb) verdict.push(fb[1] === "OK" ? "GOOD: the backend fallback works from this browser." : "PROBLEM: the backend fallback also failed, so soil and satellite data cannot load here.");
+      document.getElementById("report").value = "Rotation Explorer diagnostics " + new Date().toISOString() + "\n" + (bad.length ? bad.length + " check(s) FAILED" : "all checks passed") + "\n\n" + rows.map(function (r) { return r[1] + "  " + r[0] + "  " + r[2] + "  " + r[3]; }).join("\n") + (verdict.length ? "\n\n" + verdict.join("\n") : "");
     });
   }
   document.getElementById("run").addEventListener("click", run);

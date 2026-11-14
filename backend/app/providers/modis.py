@@ -14,6 +14,7 @@ from .. import config
 
 STAC = "https://planetarycomputer.microsoft.com/api/stac/v1/search"
 SIGN = "https://planetarycomputer.microsoft.com/api/sas/v1/sign"
+TOKEN_URL = "https://planetarycomputer.microsoft.com/api/sas/v1/token/modiseuwest/modis-061-cogs"
 NDVI_SCALE = 0.0001
 NDVI_NODATA = -3000
 GOOD_RELIABILITY = (0, 1)   # 0 = good, 1 = marginal (MODIS pixel-reliability rank)
@@ -65,6 +66,38 @@ def search(lat, lon, months=12, client=None):
     return parse_items(r.json())
 
 
+_tok = {"value": None, "expires": 0.0}
+_tok_lock = __import__("threading").Lock()
+
+
+def container_token(fetch=None, now=None):
+    """ONE read token for the whole MODIS storage container, reused until shortly before it expires.
+    Signing every file separately meant ~84 requests per call, which the Planetary Computer throttled from a shared host
+    (4 of 42 composites readable). `fetch` returns the token endpoint's JSON; injectable for tests."""
+    import time
+    now = time.time() if now is None else now
+    with _tok_lock:
+        if _tok["value"] and now < _tok["expires"] - 300:
+            return _tok["value"]
+        if fetch is None:
+            def fetch():
+                with httpx.Client(timeout=config.HTTP_TIMEOUT) as c:
+                    r = c.get(TOKEN_URL)
+                    if r.status_code != 200:
+                        raise ModisError("could not get a MODIS read token (HTTP %d)" % r.status_code)
+                    return r.json()
+        j = fetch()
+        tok = j.get("token")
+        if not tok:
+            raise ModisError("MODIS token response had no token")
+        try:
+            exp = dt.datetime.fromisoformat(str(j.get("msft:expiry", "")).replace("Z", "+00:00")).timestamp()
+        except ValueError:
+            exp = now + 600       # unknown expiry: reuse only briefly
+        _tok["value"], _tok["expires"] = tok, exp
+        return tok
+
+
 def _sign(href, client):
     r = client.get(SIGN, params={"href": href})
     if r.status_code != 200:
@@ -78,9 +111,9 @@ def read_pixel(item, lat, lon):
     import rasterio
     from pyproj import Transformer
     from rasterio.windows import Window
-    with httpx.Client(timeout=config.HTTP_TIMEOUT) as c:
-        nd_url = _sign(item["ndvi_href"], c)
-        rel_url = _sign(item["reliability_href"], c) if item.get("reliability_href") else None
+    tok = container_token()
+    nd_url = item["ndvi_href"] + "?" + tok
+    rel_url = (item["reliability_href"] + "?" + tok) if item.get("reliability_href") else None
     with rasterio.Env(GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR", GDAL_HTTP_TIMEOUT=str(config.HTTP_TIMEOUT)):
         with rasterio.open(nd_url) as ds:
             x, y = Transformer.from_crs("EPSG:4326", ds.crs, always_xy=True).transform(lon, lat)

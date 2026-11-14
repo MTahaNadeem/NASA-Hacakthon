@@ -187,12 +187,19 @@
       var body = { collections: ["modis-13Q1-061"], intersects: { type: "Point", coordinates: [lon, lat] }, datetime: iso(start) + "T00:00:00Z/" + iso(end) + "T23:59:59Z", limit: 200, sortby: [{ field: "datetime", direction: "desc" }] };
       return Promise.all([getJSON(STAC, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }, 60000), getJSON(TOKEN_URL, null, 30000)]).then(function (r) {
         var items = parseItems(r[0]), tok = r[1].token; if (!tok) throw new Error("no MODIS read token");
-        return mapLimit(items, 10, function (it) {
+        function readItem(it) {
           return Promise.all([modisValue(it.ndvi_href + "?" + tok, lat, lon), it.reliability_href ? modisValue(it.reliability_href + "?" + tok, lat, lon) : Promise.resolve(null)]).then(function (v) {
             if (v[0].out) return { item_id: it.id, sensor: it.sensor, start: it.start, end: it.end, ndvi: null, reliability: null, reason: "point outside tile" };
             var c = classify(v[0].v, v[1] && !v[1].out ? v[1].v : null);
             return { item_id: it.id, sensor: it.sensor, start: it.start, end: it.end, ndvi: c.ndvi, reliability: c.reliability, reason: c.reason };
           }, function (e) { return { item_id: it.id, sensor: it.sensor, start: it.start, end: it.end, ndvi: null, reliability: null, reason: "read failed: " + (e && e.name || "error") }; });
+        }
+        // Read ONE file first. If this browser cannot read the files at all (blocked network, or Firefox, which needs a CORS permission these
+        // servers do not give for range requests), stop at once instead of firing hundreds of doomed requests, so the caller can use the backend.
+        if (!items.length) return [];
+        return readItem(items[0]).then(function (first) {
+          if (/^read failed/.test(first.reason || "")) throw new Error("this browser could not read the MODIS files");
+          return mapLimit(items.slice(1), 10, readItem).then(function (rest) { return [first].concat(rest); });
         });
       });
     }).then(function (rows) {
