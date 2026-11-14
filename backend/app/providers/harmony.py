@@ -95,13 +95,15 @@ def submit(product, lat, lon, start, end, token, client):
     return r.headers["location"].rsplit("/", 1)[-1]
 
 
-def wait(job_id, token, client, timeout=150, poll=2.0):
+def wait(job_id, token, client, timeout=150, poll=2.0, progress=None):
     t0 = time.time()
     while time.time() - t0 < timeout:
         r = client.get("%s/jobs/%s" % (HARMONY, job_id), headers={"Authorization": "Bearer " + token})
         if r.status_code != 200:
             raise HarmonyError("could not read the Harmony job (HTTP %d)" % r.status_code)
         j = r.json()
+        if progress:
+            progress("NASA job %s %s%%" % (j.get("status"), j.get("progress")))
         if j.get("status") in ("successful", "complete_with_errors"):
             return j
         if j.get("status") in ("failed", "canceled"):
@@ -113,7 +115,7 @@ def wait(job_id, token, client, timeout=150, poll=2.0):
     raise HarmonyError("Harmony job did not finish within %d s" % timeout)
 
 
-def fetch_series(product, lat, lon, start, end, token=None, client=None, workers=8):
+def fetch_series(product, lat, lon, start, end, token=None, client=None, workers=8, progress=None):
     """[(date, value|None)] oldest first for the cell nearest the point. Raises HarmonyError on any failure of the job itself;
     a single file that cannot be read becomes a None for that day rather than hiding the others."""
     import h5py
@@ -123,13 +125,18 @@ def fetch_series(product, lat, lon, start, end, token=None, client=None, workers
     own = client is None
     client = client or httpx.Client(timeout=config.HTTP_TIMEOUT)
     try:
+        say = progress or (lambda msg: None)
+        say("submitting the NASA job")
         jid = submit(product, lat, lon, start, end, token, client)
-        job = wait(jid, token, client)
+        say("NASA job submitted")
+        job = wait(jid, token, client, progress=say)
         links = data_links(job)
+        done = [0]
 
         def one(l):
             try:
                 r = client.get(l["href"], headers={"Authorization": "Bearer " + token}, follow_redirects=True)
+                done[0] += 1; say("downloading files %d/%d" % (done[0], len(links)))
                 if r.status_code != 200:
                     return link_date(l), None
                 with h5py.File(io.BytesIO(r.content), "r") as f:

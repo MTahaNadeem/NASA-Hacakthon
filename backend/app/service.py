@@ -3,6 +3,7 @@ import datetime as dt
 
 from . import config, grid, indicators, provenance as pv
 import concurrent.futures as cf
+import inspect
 import math
 import threading
 import time
@@ -250,13 +251,19 @@ def _section(name, rows, now):
     return s
 
 
-def _recent_compute(lat, lon, fetcher, today, on_part=None):
+def _recent_compute(lat, lon, fetcher, today, on_part=None, on_progress=None):
     """Both products run at once; each is reported through on_part(name, section) the moment it finishes, so the fast one
     (IMERG, ~10 s) is not held back by the slow one (SMAP, ~45 s or more)."""
     end, start = today, today - dt.timedelta(days=RECENT_DAYS - 1)
     out, errors = {}, {}
     with cf.ThreadPoolExecutor(max_workers=2) as ex:
-        futs = {ex.submit(fetcher, name, lat, lon, start.isoformat(), end.isoformat()): name for name in ("imerg", "smap")}
+        takes_progress = "progress" in inspect.signature(fetcher).parameters or any(
+            p.kind is inspect.Parameter.VAR_KEYWORD for p in inspect.signature(fetcher).parameters.values())
+
+        def run_one(name):
+            kw = {"progress": (lambda msg, n=name: on_progress(n, msg))} if (on_progress and takes_progress) else {}
+            return fetcher(name, lat, lon, start.isoformat(), end.isoformat(), **kw)
+        futs = {ex.submit(run_one, name): name for name in ("imerg", "smap")}
         for fu in cf.as_completed(futs):
             name = futs[fu]
             try:
@@ -276,8 +283,8 @@ def _recent_compute(lat, lon, fetcher, today, on_part=None):
     return res
 
 
-def _default_fetcher(name, lat, lon, start, end):
-    return harmony.fetch_series(name, lat, lon, start, end)
+def _default_fetcher(name, lat, lon, start, end, progress=None):
+    return harmony.fetch_series(name, lat, lon, start, end, progress=progress)
 
 
 def recent(lat, lon, cache, fetcher=None, today=None, background=True):
@@ -301,7 +308,8 @@ def recent(lat, lon, cache, fetcher=None, today=None, background=True):
     with _recent_lock:
         job = _recent_jobs.get(key)
         if job and job["state"] == "running":
-            return dict({"status": "running", "window": job.get("window"), "cell": job.get("cell")}, **job.get("partial", {}))
+            return dict({"status": "running", "window": job.get("window"), "cell": job.get("cell"), "elapsed_s": int(time.time() - job["at"]),
+                         "phase": job.get("phase", ""), "progress": dict(job.get("progress", {}))}, **job.get("partial", {}))
         if job and job["state"] == "error" and time.time() - job["at"] < 60:
             return {"status": "error", "reason": job["error"]}
         _recent_jobs[key] = {"state": "running", "at": time.time(), "partial": {}, "cell": {"lat": clat, "lon": clon, "size_deg": 0.1},
@@ -313,7 +321,19 @@ def recent(lat, lon, cache, fetcher=None, today=None, background=True):
                 with _recent_lock:
                     if key in _recent_jobs:
                         _recent_jobs[key].setdefault("partial", {})[name] = section
-            res = _heavy(lambda: _recent_compute(clat, clon, fetcher, today, on_part=part))
+            def note(name, msg):
+                with _recent_lock:
+                    if key in _recent_jobs:
+                        _recent_jobs[key].setdefault("progress", {})[name] = msg
+            with _recent_lock:
+                if key in _recent_jobs:
+                    _recent_jobs[key]["phase"] = "waiting for a free slot"
+            def go():
+                with _recent_lock:
+                    if key in _recent_jobs:
+                        _recent_jobs[key]["phase"] = "reading NASA"
+                return _recent_compute(clat, clon, fetcher, today, on_part=part, on_progress=note)
+            res = _heavy(go)
             cache.put(key, res, RECENT_TTL)
             with _recent_lock:
                 _recent_jobs.pop(key, None)
