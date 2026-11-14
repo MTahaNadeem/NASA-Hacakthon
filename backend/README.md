@@ -58,6 +58,11 @@ python backend/tools/validate_earthdata.py
 
 Until that prints `PASS` for both products, the API keeps saying `discovery_only`. It never invents values.
 
+To build a **recent SMAP soil-moisture and IMERG rain** reader we first need real answers from NASA about how one point can be
+requested without downloading whole files. `python backend/tools/probe_opendap.py` (needs your token in `EARTHDATA_TOKEN`)
+asks NASA's OPeNDAP service and writes `opendap_probe_report.txt`. It could not be completed from the build environment, whose
+network proxy does not show whether the token is attached (the answer was the same with a valid and an invalid token).
+
 ## Configuration (environment variables only)
 
 | Variable | Meaning | Default |
