@@ -12,7 +12,7 @@ for k,v in labels.items(): pill(k,v)
 card=Image.new('RGBA',(820,300),(0,0,0,0)); d=ImageDraw.Draw(card); d.rounded_rectangle((0,0,819,299),radius=28,fill=(12,34,21,250))
 d.text((44,34),'THE PROBLEM',font=F(24),fill=(255,180,90,255)); d.text((44,82),'Same crop, same land,',font=F(54),fill=(255,255,255,255)); d.text((44,146),'every single year.',font=F(54),fill=(255,255,255,255))
 d.text((44,230),'Tired soil  ·  scarce water  ·  rotation is guesswork',font=F(30,False),fill=(214,236,220,255)); card.save('ov/problem.png')
-end=Image.new('RGBA',(1280,150),(0,0,0,0)); d=ImageDraw.Draw(end); d.rectangle((0,0,1280,150),fill=(15,40,25,235)); d.text((60,26),'Rotation Explorer',font=F(52),fill=(255,255,255,255)); d.text((60,92),'mtahanadeem.github.io/NASA-Hacakthon   ·   free, 10 languages',font=F(30,False),fill=(190,230,200,255)); end.save('ov/end.png')
+end=Image.new('RGBA',(1280,185),(0,0,0,0)); d=ImageDraw.Draw(end); d.rectangle((0,0,1280,185),fill=(15,40,25,238)); d.text((60,26),'Rotation Explorer',font=F(52),fill=(255,255,255,255)); d.text((60,92),'mtahanadeem.github.io/NASA-Hacakthon   ·   free, 10 languages',font=F(30,False),fill=(190,230,200,255)); d.text((60,142),'Voice-over: AI-generated (Kokoro TTS)   ·   Code and design built with AI help (Claude)',font=F(21,False),fill=(160,205,175,255)); end.save('ov/end.png')
 # segments: (label, input, src_start, src_dur, out_dur, overlay)
 segs=[('problem','still',41.2,None,7.0,'problem'),
       ('start',A,42.9,2.5,2.5,None),

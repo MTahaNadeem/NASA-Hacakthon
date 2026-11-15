@@ -151,6 +151,9 @@ Crop parameters are team rules of thumb; have an agronomist check them.
 
 ## AI disclosure
 
+
+Demo video (`docs/demo/`): the voice-over is AI-generated (Kokoro text-to-speech, Apache-2.0 model) and the screen recording was made with AI-assisted scripts (Playwright, ffmpeg). No NASA logos are used and the satellite imagery is real NASA GIBS data.
+
 Claude (Anthropic) wrote or reviewed the scoring module, data pipeline scripts and web app. All AI-assisted
 output must be reviewed and tested by the team. Scoring rules and data choices are the team's to confirm.
 
